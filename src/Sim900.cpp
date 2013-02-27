@@ -30,7 +30,7 @@ int open_port(void) {
 
 	fd = open(COM_PORT, O_RDWR | O_NOCTTY | O_NDELAY);
 	if (fd == -1) {
-		perror("open_port: Unable to open " + COM_PORT);
+		perror("open_port: Unable to open ");
 	} else {
 		/*
 		 * Start

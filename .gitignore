@@ -11,3 +11,8 @@
 *.lai
 *.la
 *.a
+
+# Eclipse setup
+.cproject
+.project
+Debug/*
