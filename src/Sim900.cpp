@@ -89,7 +89,7 @@ int open_port(void) {
 		tcsetattr(fd, TCSANOW, &options);
 	}
 
-	cout << "successfully at" << fd << endl;
+	cout << "successfully at " << hex << fd << dec << endl;
 
 	return (fd);
 }
@@ -143,11 +143,103 @@ int send_test_commands() {
 	return (-1);
 }
 
+
+/**
+ * Send an AT command to UART port.
+ * Command should be assembled with final <CR> key code.
+ *
+ * @param fd UART open port descriptor
+ *
+ * @return 0 if send was successful,
+ * -1 if sending data has integrity problem, 1 if send was error
+ */
+int sendUART(const int &fd, const char * const data, const int size) {
+	#ifdef Debug
+		cout << "Send to UART :" << data << " ";
+	#endif
+
+	//check data integrity
+	if(data == NULL
+			|| *(data + size - 1) != '\0'
+					|| *(data + size - 2) != '\n') {
+
+		#ifdef Debug
+				cout << "[Error! Data integrity failed!]" << endl;
+		#endif
+
+		return -1;
+	}
+
+	//send AT command
+	for (int tries = 0; tries < 3; tries++) {
+		if (write(fd, data, size) < size) {
+			continue;
+		} else {
+			#ifdef Debug
+					cout << "[OK]" << endl;
+			#endif
+
+			return 0;
+		}
+	}
+
+	#ifdef Debug
+			cout << "[Error! Communication failed!]" << endl;
+	#endif
+	return 1;
+}
+
+/**
+ * Receive AT response from UART port.
+ * Size of buffer should include +1 byte for null terminated key code.
+ *
+ * @return 0 if receive was successful, -1 if not enough size for incoming buffer
+ */
+int receiveUART(const int &fd, char * const buffer, const int size) {
+	char *bufptr; /* Current char in buffer */
+	int nbytes; /* Number of bytes read */
+
+	#ifdef Debug
+		cout << "Receive from UART :";
+	#endif
+
+	//receive AT response
+	bufptr = buffer;
+	while ((nbytes = read(fd, bufptr, buffer - bufptr + size - 1)) > 0) {
+		bufptr += nbytes;
+		if (bufptr[-1] == '\n' || bufptr[-1] == '\r') {
+			break;
+		}
+	}
+
+	if (bufptr[-1] == '\n' || bufptr[-1] == '\r') {
+		/* null terminate the string and see if we got an OK response */
+		*bufptr = '\0';
+
+		#ifdef Debug
+			cout << bufptr << " "<<"[OK]" << endl;
+		#endif
+
+		return 0;
+	}
+
+	#ifdef Debug
+			cout << bufptr << " " << "[Error! Buffer overloaded]" << endl;
+	#endif
+	return -1;
+}
+
 int main() {
+	#ifdef Debug
 	cout << "Starting..." << endl;
+	#endif
 
 	int fd = open_port();
-	init_modem(fd);
+
+	sendUART(fd, "AT\n", 3);
+
+	char buffer[3];
+	receiveUART(fd, buffer, 3);
 
 	return 0;
 }
