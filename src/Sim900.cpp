@@ -31,119 +31,46 @@ const char CHAR_TR = '\0';
 using namespace std;
 
 /*
- * 'open_port()' - Open serial port 1.
+ * Open UART port.
  *
  * Returns the file descriptor on success or -1 on error.
  */
 int open_port(void) {
-	cout << "Opening port ..." << endl;
+	#ifdef DEBUG
+		cout << endl << "Opening UART port on " << COM_PORT << " ...";
+	#endif
 
 	int fd; /* File descriptor for the port */
 
 	fd = open(COM_PORT, O_RDWR | O_NOCTTY | O_NDELAY);
 	if (fd == -1) {
-		perror("open_port: Unable to open ");
-	} else {
-		/*
-		 * Start
-		 */
-		fcntl(fd, F_SETFL, 0);
-
-		/**
-		 * Setup
-		 */
-		struct termios options;
-
-		/*
-		 * Get the current options for the port...
-		 */
-
-		tcgetattr(fd, &options);
-
-		/* set raw input, 1 second timeout */
-		options.c_cflag |= (CLOCAL | CREAD);
-		options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
-		options.c_oflag &= ~OPOST;
-		options.c_cc[VMIN] = 0;
-		options.c_cc[VTIME] = 10;
-
-		/*
-		 * Set the baud rates to 19200...
-
-
-		 cfsetispeed(&options, B19200);
-		 cfsetospeed(&options, B19200);
-
-
-		 * Enable the receiver and set local mode...
-
-
-		 options.c_cflag |= (CLOCAL | CREAD);
-
-
-		 * No parity (8N1):
-
-
-		 options.c_cflag &= ~PARENB;
-		 options.c_cflag &= ~CSTOPB;
-		 options.c_cflag &= ~CSIZE;
-		 options.c_cflag |= CS8;
-
-
-		 * Hardware flow control
-
-		 options.c_cflag |= CRTSCTS;
-		 */
-		/*
-		 * Set the new options for the port...
-		 */
-
-		tcsetattr(fd, TCSANOW, &options);
+		#ifdef DEBUG
+			cout << endl << "... [Error] Cannot open port!" << endl;
+		#endif
+		return -1;
 	}
 
-	cout << "successfully at " << hex << fd << dec << endl;
+	fcntl(fd, F_SETFL, 0);
 
-	return (fd);
-}
+	//get port settings
+	struct termios options;
+	tcgetattr(fd, &options);
 
-/*
- * O - 0 = MODEM ok, -1 = MODEM bad
- * I - Serial port file
- */
-int init_modem(int fd) {
-	cout << "Initializing ..." << endl;
+	//set raw input, 1 second timeout
+	options.c_cflag |= (CLOCAL | CREAD);
+	options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+	options.c_oflag &= ~OPOST;
+	options.c_cc[VMIN] = 0;
+	options.c_cc[VTIME] = 10;
 
-	char buffer[255]; /* Input buffer */
-	char *bufptr; /* Current char in buffer */
-	int nbytes; /* Number of bytes read */
-	int tries; /* Number of tries so far */
+	//set port settings
+	tcsetattr(fd, TCSANOW, &options);
 
-	for (tries = 0; tries < 3; tries++) {
-		/* send an AT command followed by a CR */
-		if (write(fd, "AT\r", 3) < 3)
-			continue;
+	#ifdef DEBUG
+		cout << "successfully at " << hex << &fd << dec << " [OK]" << endl;
+	#endif
 
-		/* read characters into our string buffer until we get a CR or NL */
-		bufptr = buffer;
-		while ((nbytes = read(fd, bufptr, buffer + sizeof(buffer) - bufptr - 1))
-				> 0) {
-			bufptr += nbytes;
-			if (bufptr[-1] == '\n' || bufptr[-1] == '\r')
-				break;
-		}
-
-		/* null terminate the string and see if we got an OK response */
-		*bufptr = '\0';
-
-		if (strncmp(buffer, "OK", 2) == 0) {
-			cout << "initialized successfully" << endl;
-			return (0);
-		}
-	}
-
-	cout << "ERROR! Don't responding" << endl;
-
-	return (-1);
+	return fd;
 }
 
 /**
@@ -276,6 +203,7 @@ int receiveUART(const int &fd, char * const buffer, const int size) {
 	#endif
 
 	//ensure, that all data received and buffer is empty
+	//TODO Check if really need!?
 	bool isOverloaded = false;
 	if(buffPtr - buffer == size-1) {
 		int tempSize = 10;
@@ -286,6 +214,7 @@ int receiveUART(const int &fd, char * const buffer, const int size) {
 				totalBytes += nBytes;
 			}
 		}
+		delete [] temp;
 
 		if(isOverloaded) {
 			#ifdef DEBUG
@@ -346,12 +275,12 @@ int main() {
 	buffer = new char[400];
 	sendUART(fd, "AT&V\r");
 	receiveUART(fd, buffer, 400);
-	delete buffer;
+	delete [] buffer;
 
 	buffer = new char[30];
 	sendUART(fd, "AT\r");
 	receiveUART(fd, buffer, 30);
-	delete buffer;
+	delete [] buffer;
 
 	return 0;
 }
