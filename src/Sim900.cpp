@@ -37,12 +37,16 @@ using namespace std;
  */
 int open_port(void) {
 	#ifdef DEBUG
-		cout << endl << "Opening UART port on " << COM_PORT << " ...";
+		cout << endl << "Opening UART port on " << COM_PORT;
 	#endif
 
 	int fd; /* File descriptor for the port */
 
+	//open in Read/Write mode,
+	//don't make it the controlling terminal for the process,
+	//ignore CDC status from terminal
 	fd = open(COM_PORT, O_RDWR | O_NOCTTY | O_NDELAY);
+
 	if (fd == -1) {
 		#ifdef DEBUG
 			cout << endl << "... [Error] Cannot open port!" << endl;
@@ -50,6 +54,7 @@ int open_port(void) {
 		return -1;
 	}
 
+	//set fd flags O_APPEND, O_NONBLOCK, O_ASYNC, O_DIRECT to 0
 	fcntl(fd, F_SETFL, 0);
 
 	//get port settings
@@ -57,17 +62,27 @@ int open_port(void) {
 	tcgetattr(fd, &options);
 
 	//set raw input, 1 second timeout
-	options.c_cflag |= (CLOCAL | CREAD);
+	options.c_cflag |= (CLOCAL | CREAD | CRTSCTS);
 	options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
 	options.c_oflag &= ~OPOST;
 	options.c_cc[VMIN] = 0;
 	options.c_cc[VTIME] = 10;
 
+	//set speed 57600
+    cfsetispeed(&options, B57600);
+    cfsetospeed(&options, B57600);
+
+    //No parity (8N1)
+    options.c_cflag &= ~PARENB;
+    options.c_cflag &= ~CSTOPB;
+    options.c_cflag &= ~CSIZE;
+    options.c_cflag |= CS8;
+
 	//set port settings
 	tcsetattr(fd, TCSANOW, &options);
 
 	#ifdef DEBUG
-		cout << "successfully at " << hex << &fd << dec << " [OK]" << endl;
+		cout << " successfully at " << hex << &fd << dec << " [OK]" << endl;
 	#endif
 
 	return fd;
@@ -203,7 +218,6 @@ int receiveUART(const int &fd, char * const buffer, const int size) {
 	#endif
 
 	//ensure, that all data received and buffer is empty
-	//TODO Check if really need!?
 	bool isOverloaded = false;
 	if(buffPtr - buffer == size-1) {
 		int tempSize = 10;
@@ -264,7 +278,6 @@ void configureUART(const int &fd){
 int main() {
 	int fd = open_port();
 
-
 	configureUART(fd);
 
 	char * buffer;
@@ -272,15 +285,17 @@ int main() {
 		cout << endl << "Communicating..." << endl;
 	#endif
 
-	buffer = new char[400];
+	buffer = new char[100];
 	sendUART(fd, "AT&V\r");
-	receiveUART(fd, buffer, 400);
+	receiveUART(fd, buffer, 100);
 	delete [] buffer;
 
-	buffer = new char[30];
+	buffer = new char[300];
 	sendUART(fd, "AT\r");
-	receiveUART(fd, buffer, 30);
+	receiveUART(fd, buffer, 300);
 	delete [] buffer;
+
+	close(fd);
 
 	return 0;
 }
