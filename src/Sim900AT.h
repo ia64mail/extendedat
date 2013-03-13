@@ -5,7 +5,7 @@
  *      Author: igor
  */
 #include <iostream>
-#include <regex>
+#include <regex.h>
 
 #ifndef SIM900AT_H_
 #define SIM900AT_H_
@@ -13,6 +13,16 @@
 class Sim900AT {
 private:
 	PortIO * portIO;
+
+	/**
+	 * Compile regex string into regex object.
+	 */
+	int compile_regex (regex_t * rp, const char * regex_text) const;
+
+	/**
+	 * Find matches into string
+	 */
+	int match_regex (regex_t * rp, const char * to_match) const;
 public:
 	Sim900AT(PortIO * portIO);
 	virtual ~Sim900AT();
