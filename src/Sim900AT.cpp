@@ -17,75 +17,60 @@ Sim900AT::~Sim900AT() {
 
 #define MAX_ERROR_MSG 0x1000
 
-int Sim900AT::compile_regex (regex_t * rp, const char * regex_text) const {
+int Sim900AT::match_regex(const char * const regex_text, const char * const to_match,
+		const int n_matches, regmatch_t * const m) const {
 	using namespace std;
 
-    int status = regcomp (rp, regex_text, REG_EXTENDED|REG_NEWLINE);
-    if (status != 0) {
-	char error_message[MAX_ERROR_MSG];
-	regerror (status, rp, error_message, MAX_ERROR_MSG);
-        printf ("Regex error compiling '%s': %s\n",
-                 regex_text, error_message);
-        return 1;
-    }
-    return 0;
-}
+	regex_t * rp = new regex_t;
 
-int Sim900AT::match_regex (regex_t * rp, const char * to_match) const {
-	using namespace std;
+	int status = regcomp(rp, regex_text, REG_EXTENDED | REG_NEWLINE);
+	if (status != 0) {
+		#ifdef LOGGING
+			char * error_message = new char[MAX_ERROR_MSG];
+			regerror (status, rp, error_message, MAX_ERROR_MSG);
+			cout << "... [Error] Regex error compiling in \"" << regex_text << "\" " << endl;
+			cout << "... caused by " << error_message << endl;
+			delete [] error_message;
+		#endif
+		delete rp;
 
-    /* "P" is a pointer into the string which points to the end of the
-       previous match. */
-    const char * p = to_match;
-    /* "N_matches" is the maximum number of matches allowed. */
-    const int n_matches = 10;
-    /* "M" contains the matches found. */
-    regmatch_t m[n_matches];
+		return 1;
+	}
 
-    while (1) {
-        int i = 0;
+	/* first occurrence of search pattern rp inside string p
+	 * matching whole pattern placed into m[0] element
+	 * other occurrence of search pattern part in ()
+	 * placed into m[1+] elements.
+	 */
+	int nomatch = regexec(rp, to_match, n_matches, m, 0);
 
-        /* first occurrence of search pattern rp inside string p
-         * matching whole pattern placed into m[0] element
-         * other occurrence of search pattern part in ()
-         * placed into m[1+] elements.
-         */
-        int nomatch = regexec (rp, p, n_matches, m, 0);
+	if (nomatch) {
+		#ifdef LOGGING
+			char * error_message = new char[MAX_ERROR_MSG];
+			regerror (status, rp, error_message, MAX_ERROR_MSG);
+			cout << "... [Warning] No matches found in \"" << regex_text << "\" " << endl;
+			cout << "... caused by " << error_message << endl;
+			delete [] error_message;
+		#endif
+		delete rp;
 
-        if (nomatch) {
-            printf ("No more matches.\n");
-            return nomatch;
-        }
-        for (i = 0; i < n_matches; i++) {
-            int start;
-            int finish;
-            if (m[i].rm_so == -1) {
-                break;
-            }
-            start = m[i].rm_so + (p - to_match);
-            finish = m[i].rm_eo + (p - to_match);
-            if (i == 0) {
-                printf ("$& is ");
-            }
-            else {
-                printf ("$%d is ", i);
-            }
-            printf ("'%.*s' (bytes %d:%d)\n", (finish - start),
-                    to_match + start, start, finish);
-        }
-        p += m[0].rm_eo;
-    }
-    return 0;
+		return nomatch;
+	}
+
+	delete rp;
+	return 0;
 }
 
 int Sim900AT::testAT(){
-	char * command = new char[] {"AT\r"};
+	char * command = new char;
+	command = "AT\r";
 	const char responceSize = 7;
 	bool resFlag = true;
 
 	resFlag &= (portIO->sendUART(command) > 0);
 
-	delete [] command;
+	//TODO
+	//delete command;
 	if(!resFlag) {
 		return -1;
 	}
@@ -97,6 +82,9 @@ int Sim900AT::testAT(){
 		delete [] responce;
 		return -1;
 	}
+
+	regmatch_t * matches = new regmatch_t[2];
+	match_regex("\r\n(.{2})\r\n", responce, 2, matches);
 
 	delete [] responce;
 	return 0;

@@ -6,23 +6,22 @@
  */
 #include <iostream>
 #include <regex.h>
+#include "PortIO.h"
 
 #ifndef SIM900AT_H_
 #define SIM900AT_H_
+
+#define LOGGING
 
 class Sim900AT {
 private:
 	PortIO * portIO;
 
 	/**
-	 * Compile regex string into regex object.
-	 */
-	int compile_regex (regex_t * rp, const char * regex_text) const;
-
-	/**
 	 * Find matches into string
 	 */
-	int match_regex (regex_t * rp, const char * to_match) const;
+	int match_regex(const char * const regex_text, const char * const to_match,
+			const int n_matches, regmatch_t * const m) const;
 public:
 	Sim900AT(PortIO * portIO);
 	virtual ~Sim900AT();

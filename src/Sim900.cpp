@@ -7,6 +7,7 @@
 //============================================================================
 #include <iostream>
 #include "PortIO.h"
+#include "Sim900AT.h"
 
 #define LOGGING
 
@@ -28,10 +29,13 @@ int main() {
 	portIO->receiveUART(buffer, 330);
 	delete [] buffer;
 
-	buffer = new char[10];
-	portIO->sendUART("AT\r");
-	portIO->receiveUART(buffer, 10);
-	delete [] buffer;
+//	buffer = new char[10];
+//	portIO->sendUART("AT\r");
+//	portIO->receiveUART(buffer, 10);
+//	delete [] buffer;
+
+	Sim900AT * atProcessor = new Sim900AT(portIO);
+	atProcessor->testAT();
 
 	delete portIO;
 
