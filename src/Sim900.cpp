@@ -32,6 +32,8 @@ int main() {
 	Sim900AT * atProcessor = new Sim900AT(portIO);
 	COMMON_AT_RESULT r = atProcessor->testAT();
 
+	SIMCARD_STATE s = atProcessor->checkSimCardLockState();
+
 	delete portIO;
 
 	return 0;

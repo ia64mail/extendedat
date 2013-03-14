@@ -21,6 +21,14 @@ typedef enum {
 	DCE_FAIL, DCE_OK, DCE_ERROR
 } COMMON_AT_RESULT;
 
+
+typedef enum {
+	SIM_FAIL, SIM_READY, SIM_PIN_REQUIRED, SIM_PUK_REQUIRED,
+	SIM_PIN2_REQUIRED, SIM_PUK2_REQUIRED,
+	DCE_SIM_REQUIRED, DCE_PUK_REQUIRED
+} SIMCARD_STATE;
+
+
 class Sim900AT {
 private:
 	PortIO * portIO;
@@ -36,7 +44,8 @@ public:
 	Sim900AT(PortIO * portIO);
 	virtual ~Sim900AT();
 
-	COMMON_AT_RESULT testAT();
+	COMMON_AT_RESULT testAT() const;
+	SIMCARD_STATE checkSimCardLockState() const;
 };
 
 #endif /* SIM900AT_H_ */
