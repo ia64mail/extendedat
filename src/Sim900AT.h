@@ -13,26 +13,30 @@
 
 #define LOGGING
 
+#ifdef LOGGING
+#define MAX_ERROR_MSG 0x1000
+#endif
+
+typedef enum {
+	DCE_FAIL, DCE_OK, DCE_ERROR
+} COMMON_AT_RESULT;
+
 class Sim900AT {
 private:
 	PortIO * portIO;
 
 	/**
-	 * Find matches into string
+	 * Find matches into string.
+	 *
+	 * @see http://www.cplusplus.com/reference/regex/ECMAScript/
 	 */
 	int match_regex(const char * const regex_text, const char * const to_match,
-			const int n_matches, regmatch_t * const m) const;
+			const int n_matches, regmatch_t * const matches) const;
 public:
 	Sim900AT(PortIO * portIO);
 	virtual ~Sim900AT();
 
-	/**
-	 * Send simple AT command and ensure,
-	 * that response is OK
-	 *
-	 * @return 0 if command passed
-	 */
-	int testAT();
+	COMMON_AT_RESULT testAT();
 };
 
 #endif /* SIM900AT_H_ */
