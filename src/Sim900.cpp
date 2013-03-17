@@ -17,22 +17,18 @@
 int main() {
 	using namespace std;
 
-	PortIO * portIO = new PortIO();
-
-	char * buffer;
 	#ifdef LOGGING
 		cout << endl << "Communicating..." << endl;
 	#endif
 
-	buffer = new char[330];
-	portIO->sendUART("AT&V\r");
-	portIO->receiveUART(buffer, 330);
-	delete [] buffer;
-
+	PortIO * portIO = new PortIO();
 	Sim900AT * atProcessor = new Sim900AT(portIO);
-	COMMON_AT_RESULT r = atProcessor->testAT();
 
+	COMMON_AT_RESULT r = atProcessor->testAT();
 	SIMCARD_STATE s = atProcessor->checkSimCardLockState();
+	if(s == SIM_PIN_REQUIRED) {
+		r = atProcessor->unlockSimCard("0000");
+	}
 
 	delete portIO;
 

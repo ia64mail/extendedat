@@ -201,17 +201,19 @@ void PortIO::configureUART() const {
 	#endif
 
 	bool initFlag = true;
-
-	char * buffer;
-	unsigned short size;
+	unsigned short size = 12;
+	char * const buffer = new char[size];
 
 	//Configure ECHO mode
 	if(sendUART("ATE0\r") > 0) {
-		size = 12;
-		buffer = new char[size];
 		initFlag &= (receiveUART(buffer, size) > 0);
-		delete [] buffer;
 	}
+
+	if(initFlag && sendUART("AT+CMEE=1\r") > 0) {
+		initFlag &= (receiveUART(buffer, size) > 0);
+	}
+
+	delete [] buffer;
 }
 
 void PortIO::writeEncoded(const char * const buffer) const {

@@ -6,6 +6,7 @@
  */
 #include <iostream>
 #include <regex.h>
+#include <cstdlib>
 #include "PortIO.h"
 
 #ifndef SIM900AT_H_
@@ -34,18 +35,36 @@ private:
 	PortIO * portIO;
 
 	/**
+	 * Mobile equipment error code.
+	 */
+	unsigned short lastCMEError;
+
+	/**
 	 * Find matches into string.
 	 *
 	 * @see http://www.cplusplus.com/reference/regex/ECMAScript/
 	 */
 	int match_regex(const char * const regex_text, const char * const to_match,
 			const int n_matches, regmatch_t * const matches) const;
+
+	/**
+	 * Reset last response CMEE status.
+	 */
+	void resetLastMobileEquipmentErrorStatus();
+
+	/**
+	 * Update last response CMEE status.
+	 */
+	void updateLastMobileEquipmentErrorStatus(const char * const responce);
 public:
 	Sim900AT(PortIO * portIO);
 	virtual ~Sim900AT();
 
-	COMMON_AT_RESULT testAT() const;
-	SIMCARD_STATE checkSimCardLockState() const;
+	unsigned short getLastMobileEquipmentErrorStatus() const;
+
+	COMMON_AT_RESULT testAT();
+	SIMCARD_STATE checkSimCardLockState();
+	COMMON_AT_RESULT unlockSimCard(const char * const password);
 };
 
 #endif /* SIM900AT_H_ */
