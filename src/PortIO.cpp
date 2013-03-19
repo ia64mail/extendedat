@@ -51,7 +51,7 @@ int PortIO::receiveUART(char * const buffer, const int size) const {
 
 	#ifdef LOGGING
 			cout << "\"";
-			writeEncoded(buffer);
+			Util::writeEncoded(buffer);
 			cout << "\"";
 			cout << " in " << totalBytes << " byte(s)";
 	#endif
@@ -108,7 +108,7 @@ int PortIO::sendUART(const char * const buffer) const {
 
 	#ifdef LOGGING
 		cout << "Send to UART: \"";
-		writeEncoded(buffer);
+		Util::writeEncoded(buffer);
 		cout << "\" in " << totalBytes << " byte(s)";
 	#endif
 
@@ -214,24 +214,4 @@ void PortIO::configureUART() const {
 	}
 
 	delete [] buffer;
-}
-
-void PortIO::writeEncoded(const char * const buffer) const {
-	const char * buffPtr = buffer;
-	while (*buffPtr != CHAR_TR) {
-		if(iscntrl(*buffPtr)) {
-			switch(*buffPtr) {
-				case CHAR_NL : cout << "\\n";
-				break;
-				case CHAR_CR : cout << "\\r";
-				break;
-				default: cout << '\\' << int(*buffPtr);
-				break;
-			}
-		} else {
-			cout << *buffPtr;
-		}
-
-		buffPtr++;
-	}
 }

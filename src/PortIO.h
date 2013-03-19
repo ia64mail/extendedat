@@ -12,25 +12,17 @@
 #include <fcntl.h>   /* File control definitions */
 #include <errno.h>   /* Error number definitions */
 #include <termios.h> /* POSIX terminal control definitions */
+#include "Config.h"
+#include "Util.h"
 
 #ifndef PORTIO_H_
 #define PORTIO_H_
-
-#define COM_PORT "/dev/ttyUSB0"
-
-//TODO Find solution to import define from called context
-#define LOGGING
 
 //Total number of attempts communicate with port
 const unsigned short TOTAL_TRIES = 3;
 
 //Size of temp buffer for cleaning port in case receiving buffer overflow
 const unsigned short TEMP_BUFFER_SIZE = 10;
-
-//Control chars redefinitions
-const char CHAR_CR = '\r';
-const char CHAR_NL = '\n';
-const char CHAR_TR = '\0';
 
 class PortIO {
 private:
@@ -45,11 +37,6 @@ private:
 	 * Configure port before use.
 	 */
 	void configureUART() const;
-
-	/**
-	 * Write buffer to output. Control chars will be encoded.
-	 */
-	void writeEncoded(const char * const buffer) const;
 public:
 	PortIO();
 	virtual ~PortIO();

@@ -6,10 +6,9 @@
 // Description : Hello World in C++, Ansi-style
 //============================================================================
 #include <iostream>
+#include "Config.h"
 #include "PortIO.h"
 #include "Sim900AT.h"
-
-#define LOGGING
 
 /**
  * Main entry point

@@ -7,12 +7,12 @@
 #include <iostream>
 #include <regex.h>
 #include <cstdlib>
+#include "Config.h"
+#include "Util.h"
 #include "PortIO.h"
 
 #ifndef SIM900AT_H_
 #define SIM900AT_H_
-
-#define LOGGING
 
 #ifdef LOGGING
 #define MAX_ERROR_MSG 0x1000

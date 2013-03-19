@@ -50,7 +50,9 @@ int Sim900AT::match_regex(const char * const regex_text, const char * const to_m
 		#ifdef LOGGING
 			char * error_message = new char[MAX_ERROR_MSG];
 			regerror (status, regexPointer, error_message, MAX_ERROR_MSG);
-			cout << "... [Warning] No matches found in \"" << regex_text << "\" " << endl;
+			cout << "... [Warning] No matches found in \"";
+			Util::writeEncoded(regex_text);
+			cout  << "\" " << endl;
 			cout << "... caused by " << error_message << endl;
 			delete [] error_message;
 		#endif
@@ -90,7 +92,7 @@ COMMON_AT_RESULT Sim900AT::testAT(){
 	resetLastMobileEquipmentErrorStatus();
 	COMMON_AT_RESULT dceResult = DCE_FAIL;
 
-	char * command = "AT\r";
+	const char * command = "AT\r";
 	const char responceSize = 7;
 	bool resFlag = true;
 
@@ -146,7 +148,7 @@ SIMCARD_STATE Sim900AT::checkSimCardLockState(){
 	resetLastMobileEquipmentErrorStatus();
 	SIMCARD_STATE dceResult = SIM_FAIL;
 
-	char * command = "AT+CPIN?\r";
+	const char * command = "AT+CPIN?\r";
 	const char responceSize = 25;
 	bool resFlag = true;
 
