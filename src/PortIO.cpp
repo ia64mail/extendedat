@@ -209,6 +209,11 @@ void PortIO::configureUART() const {
 		initFlag &= (receiveUART(buffer, size) > 0);
 	}
 
+	//Configure dial tone and busy signal detection mode
+	if(sendUART("ATX4\r") > 0) {
+		initFlag &= (receiveUART(buffer, size) > 0);
+	}
+
 	//Configure mobile equipment error mode
 	char commandTemplate[] = "AT+CMEE=%d\r";
 	char * command = new char[sizeof(commandTemplate)];
