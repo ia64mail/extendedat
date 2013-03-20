@@ -103,7 +103,7 @@ COMMON_AT_RESULT Sim900AT::testAT(){
 		return dceResult;
 	}
 
-	char * const responce = new char[responceSize];
+	char * const responce = new char[responceSize + MEE_OFFSET];
 	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
 
 	//receive fail
@@ -159,7 +159,7 @@ SIMCARD_STATE Sim900AT::checkSimCardLockState(){
 		return dceResult;
 	}
 
-	char * const responce = new char[responceSize];
+	char * const responce = new char[responceSize + MEE_OFFSET];
 	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
 
 	//receive fail
@@ -242,7 +242,7 @@ COMMON_AT_RESULT Sim900AT::unlockSimCard(const char * const password) {
 		return dceResult;
 	}
 
-	char * const responce = new char[responceSize];
+	char * const responce = new char[responceSize + MEE_OFFSET];
 	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
 
 	//receive fail

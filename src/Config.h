@@ -14,6 +14,22 @@
 #define LOGGING
 
 /**
+ * Mobile Equipment Error reporting level.
+ * Possible values - 0 and 1
+ *
+ * If defined 0 - not used,
+ * otherwise used in short format (XX code only)
+ * \r\n+CME ERROR: (XX)\r\n
+ */
+#define MEE_LEVEL 1
+
+#if MEE_LEVEL == 0
+#define MEE_OFFSET 0
+#else
+#define MEE_OFFSET 20
+#endif
+
+/**
  * Declare PORT device
  */
 #define COM_PORT "/dev/ttyUSB0"

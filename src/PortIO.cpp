@@ -15,7 +15,7 @@ PortIO::PortIO() {
 }
 
 PortIO::~PortIO() {
-	if(pd != NULL) {
+	if(!pd) {
 		close(pd);
 	}
 }
@@ -209,9 +209,16 @@ void PortIO::configureUART() const {
 		initFlag &= (receiveUART(buffer, size) > 0);
 	}
 
-	if(initFlag && sendUART("AT+CMEE=1\r") > 0) {
+	//Configure mobile equipment error mode
+	char commandTemplate[] = "AT+CMEE=%d\r";
+	char * command = new char[sizeof(commandTemplate)];
+
+	sprintf(command, commandTemplate, MEE_LEVEL);
+
+	if(initFlag && sendUART(command) > 0) {
 		initFlag &= (receiveUART(buffer, size) > 0);
 	}
 
+	delete [] command;
 	delete [] buffer;
 }
