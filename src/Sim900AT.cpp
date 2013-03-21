@@ -104,7 +104,7 @@ COMMON_AT_RESULT Sim900AT::testAT(){
 	}
 
 	char * const responce = new char[responceSize + MEE_OFFSET];
-	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+	resFlag &= (portIO->receiveUART(responce, responceSize + MEE_OFFSET) > 0);
 
 	//receive fail
 	if(!resFlag) {
@@ -160,7 +160,7 @@ SIMCARD_STATE Sim900AT::checkSimCardLockState(){
 	}
 
 	char * const responce = new char[responceSize + MEE_OFFSET];
-	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+	resFlag &= (portIO->receiveUART(responce, responceSize + MEE_OFFSET) > 0);
 
 	//receive fail
 	if(!resFlag) {
@@ -245,7 +245,7 @@ COMMON_AT_RESULT Sim900AT::unlockSimCard(const char * const password) {
 	}
 
 	char * const responce = new char[responceSize + MEE_OFFSET];
-	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+	resFlag &= (portIO->receiveUART(responce, responceSize + MEE_OFFSET) > 0);
 
 	//receive fail
 	if(!resFlag) {
@@ -286,7 +286,7 @@ CALL_STATE Sim900AT::startVoiceCall(const char * const phoneNumber) {
 
 	char commandTemplate[] = "ATD%s;\r";
 	char * command = new char[sizeof(commandTemplate) + 14];
-	const char responceSize = 15;
+	const char responceSize = 16;
 	bool resFlag = true;
 
 	sprintf(command, commandTemplate, phoneNumber);
@@ -300,7 +300,7 @@ CALL_STATE Sim900AT::startVoiceCall(const char * const phoneNumber) {
 	}
 
 	char * const responce = new char[responceSize + MEE_OFFSET];
-	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+	resFlag &= (portIO->receiveUART(responce, responceSize + MEE_OFFSET) > 0);
 
 	//receive fail
 	if(!resFlag) {
@@ -310,7 +310,7 @@ CALL_STATE Sim900AT::startVoiceCall(const char * const phoneNumber) {
 
 	char n_matches = 2;
 	regmatch_t * matches = new regmatch_t[n_matches];
-	resFlag &= (match_regex("^\r\n(\\w{2,11})\r\n$", responce, n_matches, matches) == 0);
+	resFlag &= (match_regex("^\r\n([[:alnum:][:space:]]{2,11})\r\n$", responce, n_matches, matches) == 0);
 
 	//answer decode fail
 	if(!resFlag) {
@@ -370,7 +370,7 @@ int Sim900AT::getListCurrentCalls(CALL_DETAILS * const details, const int &size)
 	}
 
 	char * const responce = new char[responceSize + MEE_OFFSET];
-	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+	resFlag &= (portIO->receiveUART(responce, responceSize + MEE_OFFSET) > 0);
 
 	//receive fail
 	if(!resFlag) {
@@ -380,7 +380,7 @@ int Sim900AT::getListCurrentCalls(CALL_DETAILS * const details, const int &size)
 
 	char n_matches = 10;
 	const char * regex_text = "\r\n\\+CLCC:\\s([[:digit:]]+),([[:digit:]]+),([[:digit:]]+),([[:digit:]]+),([[:digit:]]+)"
-			"(,\"([[:alnum:]]+)\",([[:digit:]]+),\"([[:digit:]]+)\")?\r\n";
+			"(,\"([[:alnum:]]+)\",([[:digit:]]+),\"([[:digit:]]*)\")?\r\n";
 	const char * responcePointer = responce;
 	int i = 0;
 	for(; i < size && resFlag; i++) {
@@ -430,22 +430,22 @@ int Sim900AT::getListCurrentCalls(CALL_DETAILS * const details, const int &size)
 
 			int callNumberSize = matches[7].rm_eo - matches[7].rm_so;
 			if(callNumberSize > 0) {
-				strncpy(responce + matches[7].rm_so, details[i].callOriginalNumber, callNumberSize);
-				details[i].callOriginalNumber[matches[7].rm_eo - matches[7].rm_so + 1] = "\0";
+				strncpy(details[i].callOriginalNumber,responce + matches[7].rm_so, callNumberSize);
+				details[i].callOriginalNumber[matches[7].rm_eo - matches[7].rm_so + 1] = CHAR_TR;
 
 				int callNumberTypeVal = strtol(responce + matches[8].rm_so, NULL, 10);
 				switch(callNumberTypeVal) {
-				case 161: details[i].mode = CALLEDPARTY_NATIOANL;
+				case 161: details[i].callNumberType = CALLEDPARTY_NATIOANL;
 				break;
-				case 145: details[i].mode = CALLEDPARTY_INTERNATIONAL;
+				case 145: details[i].callNumberType = CALLEDPARTY_INTERNATIONAL;
 				break;
-				case 177: details[i].mode = CALLEDPARTY_NETWORK_SPECIFIC;
+				case 177: details[i].callNumberType = CALLEDPARTY_NETWORK_SPECIFIC;
 				break;
-				case 193: details[i].mode = CALLEDPARTY_DEDICATED;
+				case 193: details[i].callNumberType = CALLEDPARTY_DEDICATED;
 				break;
-				case 129: details[i].mode = CALLEDPARTY_UNKNOWN;
+				case 129: details[i].callNumberType = CALLEDPARTY_UNKNOWN;
 				break;
-				default: details[i].mode = CALLEDPARTY_UNKNOWN;
+				default: details[i].callNumberType = CALLEDPARTY_UNKNOWN;
 				break;
 				}
 
@@ -453,7 +453,7 @@ int Sim900AT::getListCurrentCalls(CALL_DETAILS * const details, const int &size)
 			}
 		}
 
-		responcePointer = matches[0].rm_eo;
+		responcePointer = responcePointer + matches[0].rm_eo;
 
 		delete [] matches;
 	}

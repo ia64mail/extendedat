@@ -28,6 +28,17 @@ int main() {
 	if(s == SIM_PIN_REQUIRED) {
 		r = atProcessor->unlockSimCard("0000");
 	}
+	CALL_STATE cs = atProcessor->startVoiceCall("0501906337");
+
+	while(cs == CALL_CONNECT_VOICE) {
+		CALL_DETAILS * const details = new CALL_DETAILS[2];
+		int nCalls = atProcessor->getListCurrentCalls(details, 2);
+		if(nCalls < 0) {
+			//TODO missing delete
+			break;
+		}
+		delete details;
+	}
 
 	delete portIO;
 
