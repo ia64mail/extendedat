@@ -28,7 +28,7 @@ int main() {
 	if(s == SIM_PIN_REQUIRED) {
 		r = atProcessor->unlockSimCard("0000");
 	}
-	CALL_STATE cs = atProcessor->startVoiceCall("0501906337");
+	CALL_STATE cs = atProcessor->startCall("0501906337", true);
 
 	while(cs == CALL_CONNECT_VOICE) {
 		CALL_DETAILS * const details = new CALL_DETAILS[2];

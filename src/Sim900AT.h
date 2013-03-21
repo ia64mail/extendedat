@@ -10,6 +10,7 @@
 #include "Config.h"
 #include "Util.h"
 #include "PortIO.h"
+#include "HTTPConfig.h"
 
 #ifndef SIM900AT_H_
 #define SIM900AT_H_
@@ -88,11 +89,79 @@ typedef struct {
 	CALL_STATUS_CRITERION status;
 	CALL_MODE_CRITERION mode;
 	bool isConference;
-	char callOriginalNumber[10];
+	char callOriginalNumber[15];
 	CALLED_PARTY_CRITERION callNumberType;
 	int adressBookId;
 } CALL_DETAILS;
 
+/**
+ * HangUp call modes.
+ */
+typedef enum {
+	HANGUP_ALL, HANGUP_ALL_AND_CLEAN, HANGUP_CSD_CALLS,
+	HANGUP_GPRS_CALLS, HANGUP_CS_CALLS_EXCLUDE_ONHOLD,
+	HANGUP_ONHOLD_CALLS
+} HANGUP_MODE;
+
+/**
+ * Detailed information about PacketDataProtocol context settings
+ */
+#define PDP_CONTEXT_AUTO_IP "0.0.0.0" /*0.0.0.0 dynamic address will be requested*/
+#define PDP_CONTEXT_AUTO_COMPRESSION_LEVEL -1 /*default level will be used*/
+typedef struct {
+	int contextProfileID; /*can be 1 or 2, 3 always defined and locked*/
+	char accessPointName[50]; /*logical name of GPRS Gateway Service Node*/
+	char ipAddress[16]; /*IP address of DCE for this profile, use PDP_CONTEXT_AUTO_IP as default*/
+	int dataCompresionLevel; /*PDP data compression level, 0 - off, use PDP_CONTEXT_AUTO_COMPRESSION_LEVEL as default*/
+	int headerCompresionLevel; /*PDP header compression level, 0 - off, , use PDP_CONTEXT_AUTO_COMPRESSION_LEVEL as default*/
+} PDP_CONTEXT_DETAILS;
+
+/**
+ * Bearer parameter names.
+ */
+#define BEARER_PARAM_CONTYPE_CSD "CSD" /*CSD connection type*/
+#define BEARER_PARAM_CONTYPE_GPRS "GPRS" /*GPRS connection type*/
+#define BEARER_PARAM_CSD_SPEED_2400 0 /*2400 b/s*/
+#define BEARER_PARAM_CSD_SPEED_4800 1 /*4800 b/s*/
+#define BEARER_PARAM_CSD_SPEED_9600 2 /*9600 b/s*/
+#define BEARER_PARAM_CSD_SPEED_14400 3 /*14400 b/s*/
+typedef enum {
+	BEARER_PARAM_CONTYPE, /*connection type, can be one of predefined BEARER_PARAM_CONTYPE_XXX*/
+	BEARER_PARAM_APN, /*logical name of GPRS Gateway Service Node*/
+	BEARER_PARAM_USER, /*user name*/
+	BEARER_PARAM_PWD, /*user password*/
+	BEARER_PARAM_PHONENUM, /*phone number for CSD call*/
+	BEARER_PARAM_RATE /*connection rate for CSD, can be one of predefined BEARER_PARAM_CSD_SPEED_XXXX*/
+} BEARER_PARAM_NAME;
+
+/**
+ * Detailed information about bearer parameters
+ */
+typedef struct {
+	int bearerProfileID; /*unique identifier for bearer profile*/
+	BEARER_PARAM_NAME paramName; /*logical name of GPRS Gateway Service Node*/
+	char paramValue[50]; /*IP address of DCE for this profile*/
+} BEARER_PARAMETER_DETAILS;
+
+/**
+ * Bearer state.
+ */
+typedef enum {
+	BEARER_CONNECTING, BEARER_CONNECTED, BEARER_CLOSING, BEARER_CLOSED
+} BEARER_MODE;
+
+/**
+ * Detailed information about current bearer status
+ */
+typedef struct {
+	int bearerProfileID; /*unique identifier for bearer profile*/
+	BEARER_MODE mode; /*current operation mode*/
+	char ipAddress[16]; /*IP address of DCE for this profile*/
+} BEARER_STATUS;
+
+/**
+ *
+ */
 class Sim900AT {
 private:
 	PortIO * portIO;
@@ -119,6 +188,8 @@ private:
 	 * Update last response CMEE status.
 	 */
 	void updateLastMobileEquipmentErrorStatus(const char * const responce);
+
+	COMMON_AT_RESULT changeStateIPBearer(const unsigned int &bearerProfileID, const unsigned int changeStateCode);
 public:
 	Sim900AT(PortIO * portIO);
 	virtual ~Sim900AT();
@@ -128,8 +199,17 @@ public:
 	COMMON_AT_RESULT testAT();
 	SIMCARD_STATE checkSimCardLockState();
 	COMMON_AT_RESULT unlockSimCard(const char * const password);
-	CALL_STATE startVoiceCall(const char * const phoneNumber);
+	CALL_STATE startCall(const char * const phoneNumber, const bool isVoice = false);
 	int getListCurrentCalls(CALL_DETAILS * const details, const int &size);
+	COMMON_AT_RESULT hangUpCall(const HANGUP_MODE mode = HANGUP_ALL);
+	COMMON_AT_RESULT definePaketDataProtocolContextProfile(const PDP_CONTEXT_DETAILS &details);
+	COMMON_AT_RESULT setIPBearerParameters(const BEARER_PARAMETER_DETAILS &details);
+	COMMON_AT_RESULT openIPBearer(const unsigned int &bearerProfileID);
+	COMMON_AT_RESULT closeIPBearer(const unsigned int &bearerProfileID);
+	COMMON_AT_RESULT getIPBearerState(const unsigned int &bearerProfileID, BEARER_STATUS &status);
+	COMMON_AT_RESULT initialiseHTTP();
+	COMMON_AT_RESULT terminateHTTP();
+	COMMON_AT_RESULT configureHTTP(const HTTPConfig &config);
 };
 
 #endif /* SIM900AT_H_ */

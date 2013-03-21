@@ -93,7 +93,7 @@ COMMON_AT_RESULT Sim900AT::testAT(){
 	COMMON_AT_RESULT dceResult = DCE_FAIL;
 
 	const char * command = "AT\r";
-	const char responceSize = 7;
+	const char responceSize = 7 + MEE_OFFSET;
 	bool resFlag = true;
 
 	resFlag &= (portIO->sendUART(command) > 0);
@@ -103,8 +103,8 @@ COMMON_AT_RESULT Sim900AT::testAT(){
 		return dceResult;
 	}
 
-	char * const responce = new char[responceSize + MEE_OFFSET];
-	resFlag &= (portIO->receiveUART(responce, responceSize + MEE_OFFSET) > 0);
+	char * const responce = new char[responceSize];
+	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
 
 	//receive fail
 	if(!resFlag) {
@@ -144,12 +144,15 @@ COMMON_AT_RESULT Sim900AT::testAT(){
 	return dceResult;
 }
 
+/**
+ *
+ */
 SIMCARD_STATE Sim900AT::checkSimCardLockState(){
 	resetLastMobileEquipmentErrorStatus();
 	SIMCARD_STATE dceResult = SIM_FAIL;
 
 	const char * command = "AT+CPIN?\r";
-	const char responceSize = 25;
+	const char responceSize = 25 + MEE_OFFSET;
 	bool resFlag = true;
 
 	resFlag &= (portIO->sendUART(command) > 0);
@@ -159,8 +162,8 @@ SIMCARD_STATE Sim900AT::checkSimCardLockState(){
 		return dceResult;
 	}
 
-	char * const responce = new char[responceSize + MEE_OFFSET];
-	resFlag &= (portIO->receiveUART(responce, responceSize + MEE_OFFSET) > 0);
+	char * const responce = new char[responceSize];
+	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
 
 	//receive fail
 	if(!resFlag) {
@@ -225,13 +228,16 @@ SIMCARD_STATE Sim900AT::checkSimCardLockState(){
 	return dceResult;
 }
 
+/**
+ *
+ */
 COMMON_AT_RESULT Sim900AT::unlockSimCard(const char * const password) {
 	resetLastMobileEquipmentErrorStatus();
 	COMMON_AT_RESULT dceResult = DCE_FAIL;
 
 	char commandTemplate[] = "AT+CPIN=%s\r";
 	char * command = new char[sizeof(commandTemplate) + 4];
-	const char responceSize = 25;
+	const char responceSize = 7  + MEE_OFFSET;
 	bool resFlag = true;
 
 	sprintf(command, commandTemplate, password);
@@ -244,8 +250,8 @@ COMMON_AT_RESULT Sim900AT::unlockSimCard(const char * const password) {
 		return dceResult;
 	}
 
-	char * const responce = new char[responceSize + MEE_OFFSET];
-	resFlag &= (portIO->receiveUART(responce, responceSize + MEE_OFFSET) > 0);
+	char * const responce = new char[responceSize];
+	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
 
 	//receive fail
 	if(!resFlag) {
@@ -280,16 +286,24 @@ COMMON_AT_RESULT Sim900AT::unlockSimCard(const char * const password) {
 	return dceResult;
 }
 
-CALL_STATE Sim900AT::startVoiceCall(const char * const phoneNumber) {
+/**
+ *
+ */
+CALL_STATE Sim900AT::startCall(const char * const phoneNumber, const bool isVoice) {
 	resetLastMobileEquipmentErrorStatus();
 	CALL_STATE callResult = CALL_FAIL;
 
-	char commandTemplate[] = "ATD%s;\r";
+	char semicolon = ';';
+	if(!isVoice) {
+		semicolon = ' ';
+	}
+
+	char commandTemplate[] = "ATD%s%c\r";
 	char * command = new char[sizeof(commandTemplate) + 14];
-	const char responceSize = 16;
+	const char responceSize = 16  + MEE_OFFSET;
 	bool resFlag = true;
 
-	sprintf(command, commandTemplate, phoneNumber);
+	sprintf(command, commandTemplate, phoneNumber, semicolon);
 	resFlag &= (portIO->sendUART(command) > 0);
 
 	delete [] command;
@@ -299,8 +313,8 @@ CALL_STATE Sim900AT::startVoiceCall(const char * const phoneNumber) {
 		return callResult;
 	}
 
-	char * const responce = new char[responceSize + MEE_OFFSET];
-	resFlag &= (portIO->receiveUART(responce, responceSize + MEE_OFFSET) > 0);
+	char * const responce = new char[responceSize];
+	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
 
 	//receive fail
 	if(!resFlag) {
@@ -355,11 +369,14 @@ CALL_STATE Sim900AT::startVoiceCall(const char * const phoneNumber) {
 	return callResult;
 }
 
+/**
+ *
+ */
 int Sim900AT::getListCurrentCalls(CALL_DETAILS * const details, const int &size) {
 	resetLastMobileEquipmentErrorStatus();
 
 	const char * command = "AT+CLCC\r";
-	const int responceSize = (sizeof(CALL_DETAILS) + 15) * size;
+	const int responceSize = (sizeof(CALL_DETAILS) + 15) * size + 6 + MEE_OFFSET;
 	bool resFlag = true;
 
 	resFlag &= (portIO->sendUART(command) > 0);
@@ -369,8 +386,8 @@ int Sim900AT::getListCurrentCalls(CALL_DETAILS * const details, const int &size)
 		return -1;
 	}
 
-	char * const responce = new char[responceSize + MEE_OFFSET];
-	resFlag &= (portIO->receiveUART(responce, responceSize + MEE_OFFSET) > 0);
+	char * const responce = new char[responceSize];
+	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
 
 	//receive fail
 	if(!resFlag) {
@@ -383,47 +400,61 @@ int Sim900AT::getListCurrentCalls(CALL_DETAILS * const details, const int &size)
 			"(,\"([[:alnum:]]+)\",([[:digit:]]+),\"([[:digit:]]*)\")?\r\n";
 	const char * responcePointer = responce;
 	int i = 0;
-	for(; i < size && resFlag; i++) {
+	bool hasCallRecord = true;
+	while(hasCallRecord) {
 		regmatch_t * matches = new regmatch_t[n_matches];
-		resFlag &= (match_regex(regex_text, responcePointer, n_matches, matches) == 0);
+		hasCallRecord &= (match_regex(regex_text, responcePointer, n_matches, matches) == 0);
 
-		if(resFlag) {
+		//if has record about call state and has space for record info, parse it
+		if(hasCallRecord && i < size) {
 			details[i].callID = strtol(responce + matches[1].rm_so, NULL, 10);
 
 			int intVal = strtol(responce + matches[2].rm_so, NULL, 10);
 			switch(intVal) {
-			case 0 : details[i].direction = CALLDIRECTION_OUT;
-			break;
-			case 1 : details[i].direction = CALLDIRECTION_IN;
-			break;
+			case 0:
+				details[i].direction = CALLDIRECTION_OUT;
+				break;
+			case 1:
+				details[i].direction = CALLDIRECTION_IN;
+				break;
 			}
 
 			intVal = strtol(responce + matches[3].rm_so, NULL, 10);
 			switch(intVal) {
-			case 0 : details[i].status = CALLSTATUS_ACTIVE;
-			break;
-			case 1 : details[i].status = CALLSTATUS_HELD;
-			break;
-			case 2 : details[i].status = CALLSTATUS_DIALING;
-			break;
-			case 3 : details[i].status = CALLSTATUS_ALERTING;
-			break;
-			case 4 : details[i].status = CALLSTATUS_INCOMING;
-			break;
-			case 5 : details[i].status = CALLSTATUS_WAITING;
-			break;
-			case 6 : details[i].status = CALLSTATUS_DISCONNECT;
-			break;
+			case 0:
+				details[i].status = CALLSTATUS_ACTIVE;
+				break;
+			case 1:
+				details[i].status = CALLSTATUS_HELD;
+				break;
+			case 2:
+				details[i].status = CALLSTATUS_DIALING;
+				break;
+			case 3:
+				details[i].status = CALLSTATUS_ALERTING;
+				break;
+			case 4:
+				details[i].status = CALLSTATUS_INCOMING;
+				break;
+			case 5:
+				details[i].status = CALLSTATUS_WAITING;
+				break;
+			case 6:
+				details[i].status = CALLSTATUS_DISCONNECT;
+				break;
 			}
 
 			intVal = strtol(responce + matches[4].rm_so, NULL, 10);
 			switch(intVal) {
-			case 0 : details[i].mode = CALLMODE_VOICE;
-			break;
-			case 1 : details[i].mode = CALLMODE_DATA;
-			break;
-			case 2 : details[i].mode = CALLMODE_FAX;
-			break;
+			case 0:
+				details[i].mode = CALLMODE_VOICE;
+				break;
+			case 1:
+				details[i].mode = CALLMODE_DATA;
+				break;
+			case 2:
+				details[i].mode = CALLMODE_FAX;
+				break;
 			}
 
 			details[i].isConference = strtol(responce + matches[5].rm_so, NULL, 10);
@@ -431,34 +462,50 @@ int Sim900AT::getListCurrentCalls(CALL_DETAILS * const details, const int &size)
 			int callNumberSize = matches[7].rm_eo - matches[7].rm_so;
 			if(callNumberSize > 0) {
 				strncpy(details[i].callOriginalNumber,responce + matches[7].rm_so, callNumberSize);
-				details[i].callOriginalNumber[matches[7].rm_eo - matches[7].rm_so + 1] = CHAR_TR;
+				details[i].callOriginalNumber[callNumberSize + 1] = CHAR_TR;
 
 				int callNumberTypeVal = strtol(responce + matches[8].rm_so, NULL, 10);
 				switch(callNumberTypeVal) {
-				case 161: details[i].callNumberType = CALLEDPARTY_NATIOANL;
-				break;
-				case 145: details[i].callNumberType = CALLEDPARTY_INTERNATIONAL;
-				break;
-				case 177: details[i].callNumberType = CALLEDPARTY_NETWORK_SPECIFIC;
-				break;
-				case 193: details[i].callNumberType = CALLEDPARTY_DEDICATED;
-				break;
-				case 129: details[i].callNumberType = CALLEDPARTY_UNKNOWN;
-				break;
-				default: details[i].callNumberType = CALLEDPARTY_UNKNOWN;
-				break;
+				case 161:
+					details[i].callNumberType = CALLEDPARTY_NATIOANL;
+					break;
+				case 145:
+					details[i].callNumberType = CALLEDPARTY_INTERNATIONAL;
+					break;
+				case 177:
+					details[i].callNumberType = CALLEDPARTY_NETWORK_SPECIFIC;
+					break;
+				case 193:
+					details[i].callNumberType = CALLEDPARTY_DEDICATED;
+					break;
+				case 129:
+					details[i].callNumberType = CALLEDPARTY_UNKNOWN;
+					break;
+				default:
+					details[i].callNumberType = CALLEDPARTY_UNKNOWN;
+					break;
 				}
 
 				details[i].adressBookId = strtol(responce + matches[9].rm_so, NULL, 10);
 			}
 		}
 
-		responcePointer = responcePointer + matches[0].rm_eo;
+		//if has record about call state, move pointer to try find next record in response
+		if(hasCallRecord) {
+			responcePointer = responcePointer + matches[0].rm_eo;
+			i++;
+		}
 
 		delete [] matches;
 	}
 
-	//TODO Check additional matches
+	//any call state record found
+	if(i==0) {
+		char n_matches = 2;
+		regmatch_t * matches = new regmatch_t[n_matches];
+		resFlag &= (match_regex("^\r\nOK\r\n$", responce, n_matches, matches) == 0);
+		delete [] matches;
+	}
 
 	//answer decode fail
 	if(!resFlag) {
@@ -470,4 +517,458 @@ int Sim900AT::getListCurrentCalls(CALL_DETAILS * const details, const int &size)
 
 	delete [] responce;
 	return i;
+}
+
+/**
+ *
+ */
+COMMON_AT_RESULT  Sim900AT::hangUpCall(const HANGUP_MODE mode) {
+	resetLastMobileEquipmentErrorStatus();
+	COMMON_AT_RESULT dceResult = DCE_FAIL;
+
+	char commandTemplate[] = "ATH%u\r";
+	char * command = new char[sizeof(commandTemplate)];
+	const char responceSize = 7 + MEE_OFFSET;
+	bool resFlag = true;
+
+	int modeVal;
+	switch(mode) {
+	case HANGUP_ALL: modeVal = 0;
+	break;
+	case HANGUP_ALL_AND_CLEAN:
+		modeVal = 1;
+		break;
+	case HANGUP_CSD_CALLS:
+		modeVal = 2;
+		break;
+	case HANGUP_GPRS_CALLS:
+		modeVal = 3;
+		break;
+	case HANGUP_CS_CALLS_EXCLUDE_ONHOLD:
+		modeVal = 4;
+		break;
+	case HANGUP_ONHOLD_CALLS:
+		modeVal = 5;
+		break;
+	default:
+		modeVal = 0;
+		break;
+	}
+
+	sprintf(command, commandTemplate, modeVal);
+	resFlag &= (portIO->sendUART(command) > 0);
+
+	delete [] command;
+
+	//send fail
+	if(!resFlag) {
+		return dceResult;
+	}
+
+	char * const responce = new char[responceSize];
+	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+
+	//receive fail
+	if(!resFlag) {
+		delete [] responce;
+		return dceResult;
+	}
+
+	char n_matches = 2;
+	regmatch_t * matches = new regmatch_t[n_matches];
+	resFlag &= (match_regex("^\r\n(\\w{2})\r\n$", responce, n_matches, matches) == 0);
+
+	//answer decode fail
+	if(!resFlag) {
+		updateLastMobileEquipmentErrorStatus(responce);
+
+		delete [] responce;
+		delete [] matches;
+		return dceResult;
+	}
+
+	while(1) {
+		if(strncmp("OK", responce + matches[1].rm_so, matches[1].rm_eo - matches[1].rm_so) == 0) {
+			dceResult = DCE_OK;
+			break;
+		}
+
+		break;
+	}
+
+	delete [] responce;
+	delete [] matches;
+	return dceResult;
+}
+
+COMMON_AT_RESULT Sim900AT::definePaketDataProtocolContextProfile(const PDP_CONTEXT_DETAILS &details) {
+	resetLastMobileEquipmentErrorStatus();
+	COMMON_AT_RESULT dceResult = DCE_FAIL;
+
+	const char * commandTemplate = "AT+CGDCONT=%u,\"IP\",%s,%s,%u,%u\r";
+	if(details.ipAddress == PDP_CONTEXT_AUTO_IP) {
+		commandTemplate = "AT+CGDCONT=%u,\"IP\",%s\r";
+	} else if (details.dataCompresionLevel == PDP_CONTEXT_AUTO_COMPRESSION_LEVEL) {
+		commandTemplate = "AT+CGDCONT=%u,\"IP\",%s,%s\r";
+	} else if (details.headerCompresionLevel == PDP_CONTEXT_AUTO_COMPRESSION_LEVEL) {
+		commandTemplate = "AT+CGDCONT=%u,\"IP\",%s,%s,%u\r";
+	}
+
+	char * command = new char[25 + sizeof(details)];
+	const char responceSize = 7 + MEE_OFFSET;
+	bool resFlag = true;
+
+	sprintf(command, commandTemplate, details.contextProfileID, details.accessPointName,
+			details.ipAddress, details.dataCompresionLevel, details.headerCompresionLevel);
+	resFlag &= (portIO->sendUART(command) > 0);
+
+	delete [] command;
+
+	//send fail
+	if(!resFlag) {
+		return dceResult;
+	}
+
+	char * const responce = new char[responceSize];
+	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+
+	//receive fail
+	if(!resFlag) {
+		delete [] responce;
+		return dceResult;
+	}
+
+	char n_matches = 2;
+	regmatch_t * matches = new regmatch_t[n_matches];
+	resFlag &= (match_regex("^\r\n(\\w{2,5})\r\n$", responce, n_matches, matches) == 0);
+
+	//answer decode fail
+	if(!resFlag) {
+		updateLastMobileEquipmentErrorStatus(responce);
+
+		delete [] responce;
+		delete [] matches;
+		return dceResult;
+	}
+
+	while(1) {
+		if(strncmp("OK", responce + matches[1].rm_so, matches[1].rm_eo - matches[1].rm_so) == 0) {
+			dceResult = DCE_OK;
+			break;
+		}
+
+		if(strncmp("ERROR", responce + matches[1].rm_so, matches[1].rm_eo - matches[1].rm_so) == 0) {
+			dceResult = DCE_ERROR;
+			break;
+		}
+
+		break;
+	}
+
+	delete [] responce;
+	delete [] matches;
+	return dceResult;
+}
+
+COMMON_AT_RESULT Sim900AT::setIPBearerParameters(const BEARER_PARAMETER_DETAILS &details) {
+	resetLastMobileEquipmentErrorStatus();
+	COMMON_AT_RESULT dceResult = DCE_FAIL;
+
+	char commandTemplate[] = "AT+SAPBR=3,%u,%s,%s\r";
+	char * command = new char[sizeof(commandTemplate) + sizeof(details)];
+	const char responceSize = 20 + MEE_OFFSET;
+	bool resFlag = true;
+
+	const char * paramNameVal;
+	switch(details.paramName) {
+	case BEARER_PARAM_CONTYPE:
+		paramNameVal = "CONTYPE";
+		break;
+	case BEARER_PARAM_APN:
+		paramNameVal = "APN";
+		break;
+	case BEARER_PARAM_USER:
+		paramNameVal = "USER";
+		break;
+	case BEARER_PARAM_PWD:
+		paramNameVal = "PWD";
+		break;
+	case BEARER_PARAM_PHONENUM:
+		paramNameVal = "PHONENUM";
+		break;
+	case BEARER_PARAM_RATE:
+		paramNameVal = "RATE";
+		break;
+	}
+
+	sprintf(command, commandTemplate, details.bearerProfileID, paramNameVal, details.paramValue);
+	resFlag &= (portIO->sendUART(command) > 0);
+
+	delete [] command;
+
+	//send fail
+	if(!resFlag) {
+		return dceResult;
+	}
+
+	char * const responce = new char[responceSize];
+	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+
+	//receive fail
+	if(!resFlag) {
+		delete [] responce;
+		return dceResult;
+	}
+
+	char n_matches = 2;
+	regmatch_t * matches = new regmatch_t[n_matches];
+	resFlag &= (match_regex("^\r\n(\\w{2})\r\n$", responce, n_matches, matches) == 0);
+
+	//answer decode fail
+	if(!resFlag) {
+		updateLastMobileEquipmentErrorStatus(responce);
+
+		delete [] responce;
+		delete [] matches;
+		return dceResult;
+	}
+
+	while(1) {
+		if(strncmp("OK", responce + matches[1].rm_so, matches[1].rm_eo - matches[1].rm_so) == 0) {
+			dceResult = DCE_OK;
+			break;
+		}
+
+		break;
+	}
+
+	delete [] responce;
+	delete [] matches;
+	return dceResult;
+}
+
+COMMON_AT_RESULT Sim900AT::changeStateIPBearer(const unsigned int &bearerProfileID, const unsigned int changeStateCode) {
+	resetLastMobileEquipmentErrorStatus();
+	COMMON_AT_RESULT dceResult = DCE_FAIL;
+
+	char commandTemplate[] = "AT+SAPBR=%u,%u\r";
+	char * command = new char[sizeof(commandTemplate) + 2];
+	const char responceSize = 20 + MEE_OFFSET;
+	bool resFlag = true;
+
+	sprintf(command, commandTemplate, changeStateCode, bearerProfileID);
+	resFlag &= (portIO->sendUART(command) > 0);
+
+	delete [] command;
+
+	//send fail
+	if(!resFlag) {
+		return dceResult;
+	}
+
+	char * const responce = new char[responceSize];
+	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+
+	//receive fail
+	if(!resFlag) {
+		delete [] responce;
+		return dceResult;
+	}
+
+	char n_matches = 2;
+	regmatch_t * matches = new regmatch_t[n_matches];
+	resFlag &= (match_regex("^\r\n(\\w{2})\r\n$", responce, n_matches, matches) == 0);
+
+	//answer decode fail
+	if(!resFlag) {
+		updateLastMobileEquipmentErrorStatus(responce);
+
+		delete [] responce;
+		delete [] matches;
+		return dceResult;
+	}
+
+	while(1) {
+		if(strncmp("OK", responce + matches[1].rm_so, matches[1].rm_eo - matches[1].rm_so) == 0) {
+			dceResult = DCE_OK;
+			break;
+		}
+
+		break;
+	}
+
+	delete [] responce;
+	delete [] matches;
+	return dceResult;
+}
+
+COMMON_AT_RESULT Sim900AT::openIPBearer(const unsigned int &bearerProfileID) {
+	return changeStateIPBearer(bearerProfileID, 1);
+}
+
+COMMON_AT_RESULT Sim900AT::closeIPBearer(const unsigned int &bearerProfileID) {
+	return changeStateIPBearer(bearerProfileID, 0);
+}
+
+COMMON_AT_RESULT Sim900AT::getIPBearerState(const unsigned int &bearerProfileID, BEARER_STATUS &status){
+	resetLastMobileEquipmentErrorStatus();
+	COMMON_AT_RESULT dceResult = DCE_FAIL;
+
+	char commandTemplate[] = "AT+SAPBR=2,%u\r";
+	char * command = new char[sizeof(commandTemplate) + 2];
+	const char responceSize = 30 + MEE_OFFSET;
+	bool resFlag = true;
+
+	sprintf(command, commandTemplate, bearerProfileID);
+	resFlag &= (portIO->sendUART(command) > 0);
+
+	delete [] command;
+
+	//send fail
+	if(!resFlag) {
+		return dceResult;
+	}
+
+	char * const responce = new char[responceSize];
+	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+
+	//receive fail
+	if(!resFlag) {
+		delete [] responce;
+		return dceResult;
+	}
+
+	char n_matches = 4;
+	regmatch_t * matches = new regmatch_t[n_matches];
+	resFlag &= (match_regex("^\r\n\\+SAPBR:\\s([[:digit:]]+),([[:digit:]]{1}),\"([[:digit:][:d:]]{7,15})\"\r\nOK\r\n$", responce, n_matches, matches) == 0);
+
+	//answer decode fail
+	if(!resFlag) {
+		updateLastMobileEquipmentErrorStatus(responce);
+
+		delete [] responce;
+		delete [] matches;
+		return dceResult;
+	}
+
+	status.bearerProfileID = strtol(responce + matches[1].rm_so, NULL, 10);
+
+	int modeVal = strtol(responce + matches[2].rm_so, NULL, 10);
+	switch(modeVal) {
+	case 0:
+		status.mode = BEARER_CONNECTING;
+		break;
+	case 1:
+		status.mode = BEARER_CONNECTED;
+		break;
+	case 2:
+		status.mode = BEARER_CLOSING;
+		break;
+	case 3:
+		status.mode = BEARER_CLOSED;
+		break;
+	}
+
+	char ipSize = matches[3].rm_eo - matches[3].rm_so;
+	strncpy(status.ipAddress, responce + matches[3].rm_so, ipSize);
+	status.ipAddress[ipSize + 1] = CHAR_TR;
+
+	delete [] responce;
+	delete [] matches;
+	return dceResult;
+}
+
+COMMON_AT_RESULT Sim900AT::initialiseHTTP(){
+	resetLastMobileEquipmentErrorStatus();
+	COMMON_AT_RESULT dceResult = DCE_FAIL;
+
+	const char * command = "AT+HTTPINIT\r";
+	const char responceSize = 7 + MEE_OFFSET;
+	bool resFlag = true;
+
+	resFlag &= (portIO->sendUART(command) > 0);
+
+	//send fail
+	if(!resFlag) {
+		return dceResult;
+	}
+
+	char * const responce = new char[responceSize];
+	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+
+	//receive fail
+	if(!resFlag) {
+		delete [] responce;
+		return dceResult;
+	}
+
+	char n_matches = 1;
+	regmatch_t * matches = new regmatch_t[n_matches];
+	resFlag &= (match_regex("^\r\nOK\r\n$", responce, n_matches, matches) == 0);
+
+	//answer decode fail
+	if(!resFlag) {
+		updateLastMobileEquipmentErrorStatus(responce);
+
+		delete [] responce;
+		delete [] matches;
+		return dceResult;
+	}
+
+	dceResult = DCE_OK;
+
+	delete [] responce;
+	delete [] matches;
+	return dceResult;
+}
+
+COMMON_AT_RESULT Sim900AT::terminateHTTP() {
+	resetLastMobileEquipmentErrorStatus();
+	COMMON_AT_RESULT dceResult = DCE_FAIL;
+
+	const char * command = "AT+HTTPTERM\r";
+	const char responceSize = 7 + MEE_OFFSET;
+	bool resFlag = true;
+
+	resFlag &= (portIO->sendUART(command) > 0);
+
+	//send fail
+	if(!resFlag) {
+		return dceResult;
+	}
+
+	char * const responce = new char[responceSize];
+	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+
+	//receive fail
+	if(!resFlag) {
+		delete [] responce;
+		return dceResult;
+	}
+
+	char n_matches = 1;
+	regmatch_t * matches = new regmatch_t[n_matches];
+	resFlag &= (match_regex("^\r\nOK\r\n$", responce, n_matches, matches) == 0);
+
+	//answer decode fail
+	if(!resFlag) {
+		updateLastMobileEquipmentErrorStatus(responce);
+
+		delete [] responce;
+		delete [] matches;
+		return dceResult;
+	}
+
+	dceResult = DCE_OK;
+
+	delete [] responce;
+	delete [] matches;
+	return dceResult;
+}
+
+COMMON_AT_RESULT Sim900AT::configureHTTP(const HTTPConfig &config) {
+	resetLastMobileEquipmentErrorStatus();
+	COMMON_AT_RESULT dceResult = DCE_FAIL;
+
+	return dceResult;
 }
