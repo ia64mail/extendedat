@@ -160,6 +160,19 @@ typedef struct {
 } BEARER_STATUS;
 
 /**
+ * HTTP action methods.
+ */
+typedef enum {
+	HTTP_ACTION_METHOD_GET, HTTP_ACTION_METHOD_POST, HTTP_ACTION_METHOD_HEAD
+} HTTP_ACTION_METHOD;
+
+typedef struct {
+	HTTP_ACTION_METHOD method; /*HTTP method type*/
+	unsigned short httpResponcecCode; /*HTTP response code*/
+	unsigned int size; /*size of requested resource*/
+} HTTP_ACTION_STATUS;
+
+/**
  *
  */
 class Sim900AT {
@@ -190,6 +203,8 @@ private:
 	void updateLastMobileEquipmentErrorStatus(const char * const responce);
 
 	COMMON_AT_RESULT changeStateIPBearer(const unsigned int &bearerProfileID, const unsigned int changeStateCode);
+	COMMON_AT_RESULT configureHTTP(const char * atCommand);
+	COMMON_AT_RESULT setHTTPContext(const HTTPConfig &config, const HTTPCONFIG_CHANGES changes);
 public:
 	Sim900AT(PortIO * portIO);
 	virtual ~Sim900AT();
@@ -203,13 +218,20 @@ public:
 	int getListCurrentCalls(CALL_DETAILS * const details, const int &size);
 	COMMON_AT_RESULT hangUpCall(const HANGUP_MODE mode = HANGUP_ALL);
 	COMMON_AT_RESULT definePaketDataProtocolContextProfile(const PDP_CONTEXT_DETAILS &details);
+
 	COMMON_AT_RESULT setIPBearerParameters(const BEARER_PARAMETER_DETAILS &details);
 	COMMON_AT_RESULT openIPBearer(const unsigned int &bearerProfileID);
 	COMMON_AT_RESULT closeIPBearer(const unsigned int &bearerProfileID);
 	COMMON_AT_RESULT getIPBearerState(const unsigned int &bearerProfileID, BEARER_STATUS &status);
+
 	COMMON_AT_RESULT initialiseHTTP();
 	COMMON_AT_RESULT terminateHTTP();
-	COMMON_AT_RESULT configureHTTP(const HTTPConfig &config);
+
+	COMMON_AT_RESULT getHTTPContext(HTTPConfig &config);
+	COMMON_AT_RESULT initialiseHTTPContext(const HTTPConfig &config);
+	COMMON_AT_RESULT updateHTTPContext(const HTTPConfig &config);
+
+	COMMON_AT_RESULT setCurrentAction(const HTTP_ACTION_METHOD &method, HTTP_ACTION_STATUS &status);
 };
 
 #endif /* SIM900AT_H_ */

@@ -606,7 +606,7 @@ COMMON_AT_RESULT Sim900AT::definePaketDataProtocolContextProfile(const PDP_CONTE
 	COMMON_AT_RESULT dceResult = DCE_FAIL;
 
 	const char * commandTemplate = "AT+CGDCONT=%u,\"IP\",%s,%s,%u,%u\r";
-	if(details.ipAddress == PDP_CONTEXT_AUTO_IP) {
+	if(strcmp(details.ipAddress, PDP_CONTEXT_AUTO_IP)) {
 		commandTemplate = "AT+CGDCONT=%u,\"IP\",%s\r";
 	} else if (details.dataCompresionLevel == PDP_CONTEXT_AUTO_COMPRESSION_LEVEL) {
 		commandTemplate = "AT+CGDCONT=%u,\"IP\",%s,%s\r";
@@ -966,9 +966,462 @@ COMMON_AT_RESULT Sim900AT::terminateHTTP() {
 	return dceResult;
 }
 
-COMMON_AT_RESULT Sim900AT::configureHTTP(const HTTPConfig &config) {
+COMMON_AT_RESULT Sim900AT::configureHTTP(const char * atCommand) {
 	resetLastMobileEquipmentErrorStatus();
 	COMMON_AT_RESULT dceResult = DCE_FAIL;
+
+	const char responceSize = 7 + MEE_OFFSET;
+	bool resFlag = true;
+
+	resFlag &= (portIO->sendUART(atCommand) > 0);
+
+	//send fail
+	if(!resFlag) {
+		return dceResult;
+	}
+
+	char * const responce = new char[responceSize];
+	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+
+	//receive fail
+	if(!resFlag) {
+		delete [] responce;
+		return dceResult;
+	}
+
+	char n_matches = 1;
+	regmatch_t * matches = new regmatch_t[n_matches];
+	resFlag &= (match_regex("^\r\nOK\r\n$", responce, n_matches, matches) == 0);
+
+	//answer decode fail
+	if(!resFlag) {
+		updateLastMobileEquipmentErrorStatus(responce);
+
+		delete [] responce;
+		delete [] matches;
+		return dceResult;
+	}
+
+	dceResult = DCE_OK;
+
+	delete [] responce;
+	delete [] matches;
+	return dceResult;
+}
+
+COMMON_AT_RESULT Sim900AT::setHTTPContext(const HTTPConfig &config, const HTTPCONFIG_CHANGES changes) {
+	resetLastMobileEquipmentErrorStatus();
+	COMMON_AT_RESULT dceResult = DCE_OK;
+
+	const char commandTemplateForStringValue[] = "AT+HTTPPARA=\"%s\",\"%s\"\r";
+	const char commandTemplateForIntValue[] = "AT+HTTPPARA=\"%s\",%u\r";
+
+	//set mandatory bearerProfileID
+	if(dceResult == DCE_OK && changes.bearerProfileChanged) {
+		char * command = new char[sizeof(commandTemplateForIntValue)
+		                          + sizeof(config.getBearerProfileParamName())
+		                          + sizeof(config.getBearerProfileID())];
+		sprintf(command, commandTemplateForIntValue, config.getBearerProfileParamName(), config.getBearerProfileID());
+
+		dceResult = configureHTTP(command);
+
+		delete [] command;
+	}
+
+	//set mandatory url
+	if(dceResult == DCE_OK && changes.urlChanged) {
+		char * command = new char[sizeof(commandTemplateForStringValue)
+		                          + sizeof(config.getUrlParamName())
+		                          + sizeof(config.getUrl())];
+		sprintf(command, commandTemplateForStringValue, config.getUrlParamName(), config.getUrl());
+
+		dceResult = configureHTTP(command);
+
+		delete [] command;
+	}
+
+	//set user agent
+	if(dceResult == DCE_OK  && changes.userAgentChanged) {
+		char * command = new char[sizeof(commandTemplateForStringValue)
+		                          + sizeof(config.getUserAgentParamName())
+		                          + sizeof(config.getUserAgent())];
+		sprintf(command, commandTemplateForStringValue, config.getUserAgentParamName(), config.getUserAgent());
+
+		dceResult = configureHTTP(command);
+
+		delete [] command;
+	}
+
+	//set proxy
+	//TODO how to be if context was previously changed and proxy was set ? how to set "disabled value"
+	if(config.isEnabledProxy()) {
+		if(dceResult == DCE_OK && changes.proxyIPChanged) {
+			char * command = new char[sizeof(commandTemplateForStringValue)
+									  + sizeof(config.getProxyIPParamName())
+									  + sizeof(config.getProxyIP())];
+			sprintf(command, commandTemplateForStringValue, config.getProxyIPParamName(), config.getProxyIP());
+
+			dceResult = configureHTTP(command);
+
+			delete [] command;
+		}
+		if(dceResult == DCE_OK && changes.proxyPortChanged) {
+			char * command = new char[sizeof(commandTemplateForIntValue)
+									  + sizeof(config.getProxyPortParamName())
+									  + sizeof(config.getProxyPort())];
+			sprintf(command, commandTemplateForIntValue, config.getProxyPortParamName(), config.getProxyPort());
+
+			dceResult = configureHTTP(command);
+
+			delete [] command;
+		}
+	}
+
+	//set redirection
+	if(dceResult == DCE_OK && changes.redirectionChanged) {
+		char * command = new char[sizeof(commandTemplateForIntValue)
+		                          + sizeof(config.getRedirectParamName())
+		                          + sizeof(config.isEnabledRedirection())];
+		sprintf(command, commandTemplateForIntValue, config.getRedirectParamName(), config.isEnabledRedirection());
+
+		dceResult = configureHTTP(command);
+
+		delete [] command;
+	}
+
+	//set breaking
+	if(dceResult == DCE_OK && changes.breakStartPosChanged) {
+		char * command = new char[sizeof(commandTemplateForIntValue)
+		                          + sizeof(config.getBreakStartPosParamName())
+		                          + sizeof(config.getBreakStartPos())];
+		sprintf(command, commandTemplateForIntValue, config.getBreakStartPosParamName(), config.getBreakStartPos());
+
+		dceResult = configureHTTP(command);
+
+		delete [] command;
+	}
+	if(dceResult == DCE_OK && changes.breakEndPosChanged) {
+		char * command = new char[sizeof(commandTemplateForIntValue)
+		                          + sizeof(config.getBreakEndPosParamName())
+		                          + sizeof(config.getBreakEndPos())];
+		sprintf(command, commandTemplateForIntValue, config.getBreakEndPosParamName(), config.getBreakEndPos());
+
+		dceResult = configureHTTP(command);
+
+		delete [] command;
+	}
+
+	//set timeout
+	if(dceResult == DCE_OK && changes.timeoutChanged) {
+		char * command = new char[sizeof(commandTemplateForIntValue)
+		                          + sizeof(config.getTimeoutParamName())
+		                          + sizeof(config.getTimeout())];
+		sprintf(command, commandTemplateForIntValue, config.getTimeoutParamName(), config.getTimeout());
+
+		dceResult = configureHTTP(command);
+
+		delete [] command;
+	}
+
+	//set content type
+	if(dceResult == DCE_OK && changes.contentTypeChanged) {
+		char * command = new char[sizeof(commandTemplateForStringValue)
+		                          + sizeof(config.getContentTypeParamName())
+		                          + sizeof(config.getContentType())];
+		sprintf(command, commandTemplateForStringValue, config.getContentTypeParamName(), config.getContentType());
+
+		dceResult = configureHTTP(command);
+
+		delete [] command;
+	}
+
+	return dceResult;
+}
+
+COMMON_AT_RESULT Sim900AT::getHTTPContext(HTTPConfig &config) {
+	resetLastMobileEquipmentErrorStatus();
+	COMMON_AT_RESULT dceResult = DCE_FAIL;
+
+	const char * command = "AT+HTTPPARA?\r";
+	const short responceSize = sizeof(config) + 20 + MEE_OFFSET;
+	bool resFlag = true;
+
+	resFlag &= (portIO->sendUART(command) > 0);
+
+	//send fail
+	if(!resFlag) {
+		return dceResult;
+	}
+
+	char * const responce = new char[responceSize];
+	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+
+	//receive fail
+	if(!resFlag) {
+		delete [] responce;
+		return dceResult;
+	}
+
+	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11*/
+	//TODO unknown response format
+/*
+	char n_matches = 10;
+	const char * regex_text = "\r\n\\+HTTPPARA:\\s\r\n";
+	const char * responcePointer = responce;
+	int i = 0;
+	bool hasCallRecord = true;
+	while(hasCallRecord) {
+		regmatch_t * matches = new regmatch_t[n_matches];
+		hasCallRecord &= (match_regex(regex_text, responcePointer, n_matches, matches) == 0);
+
+		//if has record about call state and has space for record info, parse it
+		if(hasCallRecord && i < size) {
+			details[i].callID = strtol(responce + matches[1].rm_so, NULL, 10);
+
+			int intVal = strtol(responce + matches[2].rm_so, NULL, 10);
+			switch(intVal) {
+			case 0:
+				details[i].direction = CALLDIRECTION_OUT;
+				break;
+			case 1:
+				details[i].direction = CALLDIRECTION_IN;
+				break;
+			}
+
+			intVal = strtol(responce + matches[3].rm_so, NULL, 10);
+			switch(intVal) {
+			case 0:
+				details[i].status = CALLSTATUS_ACTIVE;
+				break;
+			case 1:
+				details[i].status = CALLSTATUS_HELD;
+				break;
+			case 2:
+				details[i].status = CALLSTATUS_DIALING;
+				break;
+			case 3:
+				details[i].status = CALLSTATUS_ALERTING;
+				break;
+			case 4:
+				details[i].status = CALLSTATUS_INCOMING;
+				break;
+			case 5:
+				details[i].status = CALLSTATUS_WAITING;
+				break;
+			case 6:
+				details[i].status = CALLSTATUS_DISCONNECT;
+				break;
+			}
+
+			intVal = strtol(responce + matches[4].rm_so, NULL, 10);
+			switch(intVal) {
+			case 0:
+				details[i].mode = CALLMODE_VOICE;
+				break;
+			case 1:
+				details[i].mode = CALLMODE_DATA;
+				break;
+			case 2:
+				details[i].mode = CALLMODE_FAX;
+				break;
+			}
+
+			details[i].isConference = strtol(responce + matches[5].rm_so, NULL, 10);
+
+			int callNumberSize = matches[7].rm_eo - matches[7].rm_so;
+			if(callNumberSize > 0) {
+				strncpy(details[i].callOriginalNumber,responce + matches[7].rm_so, callNumberSize);
+				details[i].callOriginalNumber[callNumberSize + 1] = CHAR_TR;
+
+				int callNumberTypeVal = strtol(responce + matches[8].rm_so, NULL, 10);
+				switch(callNumberTypeVal) {
+				case 161:
+					details[i].callNumberType = CALLEDPARTY_NATIOANL;
+					break;
+				case 145:
+					details[i].callNumberType = CALLEDPARTY_INTERNATIONAL;
+					break;
+				case 177:
+					details[i].callNumberType = CALLEDPARTY_NETWORK_SPECIFIC;
+					break;
+				case 193:
+					details[i].callNumberType = CALLEDPARTY_DEDICATED;
+					break;
+				case 129:
+					details[i].callNumberType = CALLEDPARTY_UNKNOWN;
+					break;
+				default:
+					details[i].callNumberType = CALLEDPARTY_UNKNOWN;
+					break;
+				}
+
+				details[i].adressBookId = strtol(responce + matches[9].rm_so, NULL, 10);
+			}
+		}
+
+		//if has record about call state, move pointer to try find next record in response
+		if(hasCallRecord) {
+			responcePointer = responcePointer + matches[0].rm_eo;
+			i++;
+		}
+
+		delete [] matches;
+	}
+
+	//any call state record found
+	if(i==0) {
+		char n_matches = 2;
+		regmatch_t * matches = new regmatch_t[n_matches];
+		resFlag &= (match_regex("^\r\nOK\r\n$", responce, n_matches, matches) == 0);
+		delete [] matches;
+	}
+
+*/
+
+	//answer decode fail
+	if(!resFlag) {
+		updateLastMobileEquipmentErrorStatus(responce);
+
+		delete [] responce;
+//		delete [] matches;
+		return dceResult;
+	}
+
+	dceResult = DCE_OK;
+
+	delete [] responce;
+//	delete [] matches;
+	return dceResult;
+}
+
+COMMON_AT_RESULT Sim900AT::initialiseHTTPContext(const HTTPConfig &config) {
+	resetLastMobileEquipmentErrorStatus();
+
+	HTTPCONFIG_CHANGES changes = HTTPCONFIG_CHANGES();
+
+	return setHTTPContext(config, changes);
+}
+
+COMMON_AT_RESULT Sim900AT::updateHTTPContext(const HTTPConfig &config) {
+	resetLastMobileEquipmentErrorStatus();
+	COMMON_AT_RESULT dceResult = DCE_OK;
+
+	HTTPConfig existingConfig = HTTPConfig();
+	HTTPCONFIG_CHANGES changes = HTTPCONFIG_CHANGES();
+
+	dceResult = getHTTPContext(existingConfig);
+
+	if(dceResult == DCE_OK) {
+		int res = existingConfig.compareWith(config, changes);
+
+		if(res == 0) {
+			return dceResult;
+		}
+
+		return setHTTPContext(config, changes);
+	}
+
+	return dceResult;
+}
+
+COMMON_AT_RESULT Sim900AT::setCurrentAction(const HTTP_ACTION_METHOD &method, HTTP_ACTION_STATUS &status) {
+	resetLastMobileEquipmentErrorStatus();
+	COMMON_AT_RESULT dceResult = DCE_FAIL;
+
+	char commandTemplate[] = "AT+HTTPACTION=%u\r";
+	char * command = new char[sizeof(commandTemplate) + 2];
+	const char responceSize = 30 + MEE_OFFSET;
+	bool resFlag = true;
+
+	//TODO migrate to Java style enum
+	int methodVal;
+	switch(method) {
+	case HTTP_ACTION_METHOD_GET:
+		methodVal = 0;
+		break;
+	case HTTP_ACTION_METHOD_POST:
+		methodVal = 1;
+		break;
+	case HTTP_ACTION_METHOD_HEAD:
+		methodVal = 2;
+		break;
+	}
+
+	sprintf(command, commandTemplate, methodVal);
+	resFlag &= (portIO->sendUART(command) > 0);
+
+	//send fail
+	if(!resFlag) {
+		return dceResult;
+	}
+
+	bool hasFirstResponce = false;
+	bool hasSecondResponce = false;
+
+	do {
+		char * const responce = new char[responceSize];
+
+		resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+
+		//receive fail
+		if(!resFlag) {
+			delete [] responce;
+			return dceResult;
+		}
+
+		char n_matches = 6;
+		regmatch_t * matches = new regmatch_t[n_matches];
+		resFlag &= (match_regex("^(\r\nOK\r\n)?(\r\n\\+HTTPACTION:\\s([[:digit:]]),([[:digit:]]{3}),([[:digit:]]+)\r\n)?$",
+				responce, n_matches, matches) == 0);
+
+		//answer decode fail
+		if(!resFlag) {
+			updateLastMobileEquipmentErrorStatus(responce);
+
+			delete [] responce;
+			delete [] matches;
+			return dceResult;
+		}
+
+		//decode first part of answer if present
+		if(!hasFirstResponce && matches[1].rm_so != -1) {
+			hasFirstResponce = true;
+		} else {
+			updateLastMobileEquipmentErrorStatus(responce);
+
+			delete [] responce;
+			delete [] matches;
+			return dceResult;
+		}
+
+		if(!hasSecondResponce && matches[2].rm_so != -1) {
+			hasSecondResponce = true;
+
+			//TODO migrate to Java style enum
+			int methodVal = strtol(responce + matches[3].rm_so, NULL, 10);
+			switch(methodVal) {
+			case 0:
+				status.method = HTTP_ACTION_METHOD_GET;
+				break;
+			case 1:
+				status.method = HTTP_ACTION_METHOD_POST;
+				break;
+			case 2:
+				status.method = HTTP_ACTION_METHOD_HEAD;
+				break;
+			}
+
+			status.httpResponcecCode = strtol(responce + matches[4].rm_so, NULL, 10);
+			status.size = strtol(responce + matches[5].rm_so, NULL, 10);
+		}
+
+		delete [] responce;
+		delete [] matches;
+
+		//TODO timeout or better sleep
+	} while (!hasFirstResponce && !hasSecondResponce);
+
+	dceResult = DCE_OK;
 
 	return dceResult;
 }
