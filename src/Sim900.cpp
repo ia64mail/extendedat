@@ -34,43 +34,64 @@ int main() {
 	}
 
 	/**
+	 * Test voice call
+	 */
+	CALL_DETAILS * cd = new CALL_DETAILS[3];
+	atProcessor->getListCurrentCalls(cd, 3);
+	delete [] cd;
+
+	atProcessor->startCall("0501906337", true);
+	sleep(5);
+
+	cd = new CALL_DETAILS[3];
+	atProcessor->getListCurrentCalls(cd, 3);
+	delete [] cd;
+
+	atProcessor->hangUpCall();
+	cd = new CALL_DETAILS[3];
+	atProcessor->getListCurrentCalls(cd, 3);
+	delete [] cd;
+
+	/**
 	 * Create GPRS connection for HTTP AT commands
 	 */
 	BEARER_PARAMETER_DETAILS bearerDetails;
 	int bearerId = 1;
 
-	//setup connection
-	while(true) {
-		//connection type
-		bearerDetails.bearerProfileID = bearerId;
-		bearerDetails.paramName = BEARER_PARAM_CONTYPE;
-		//bearerDetails.paramValue = BEARER_PARAM_CONTYPE_GPRS;
+	//setup connection type
+	bearerDetails.bearerProfileID = bearerId;
+	bearerDetails.paramName = BEARER_PARAM_CONTYPE;
+	char contype[50] = "GPRS";
+	strcpy(bearerDetails.paramValue, contype);
 
-		r = atProcessor->setIPBearerParameters(bearerDetails);
-		if(r != DCE_OK) {
-			return -1;
-		}
+	r = atProcessor->setIPBearerParameters(bearerDetails);
+	if(r != DCE_OK) {
+		return -1;
+	}
 
-		//AP name
-		bearerDetails.bearerProfileID = bearerId;
-		bearerDetails.paramName = BEARER_PARAM_APN;
-		//bearerDetails.paramValue = "internet";
+	//setup connection AP name
+	bearerDetails.bearerProfileID = bearerId;
+	bearerDetails.paramName = BEARER_PARAM_APN;
+	char apname[50] = "internet";
+	strcpy(bearerDetails.paramValue, apname);
 
-		r = atProcessor->setIPBearerParameters(bearerDetails);
-		if(r != DCE_OK) {
-			return -1;
-		}
 
-		break;
+	r = atProcessor->setIPBearerParameters(bearerDetails);
+	if(r != DCE_OK) {
+		return -1;
 	}
 
 	//open connection
+	sleep(3); /*small delay required!!!*/
 	r = atProcessor->openIPBearer(bearerId);
+	if(r != DCE_OK) {
+		//return -1;
+	}
 
 	//check connection state
 	BEARER_STATUS bearerStatus;
 	int counter = 0;
-	while(bearerStatus.mode != BEARER_CONNECTED && counter < 100) {
+	while(bearerStatus.mode != BEARER_CONNECTED && counter < 3) {
 		r = atProcessor->getIPBearerState(bearerId, bearerStatus);
 
 		cout << "Stating GPRS connection ..." << " bearerProfileID=" << bearerStatus.bearerProfileID
@@ -91,22 +112,35 @@ int main() {
 		return -1;
 	}
 
-	HTTPConfig httpConfig = HTTPConfig(1, "www.ya.ru");
+	HTTPConfig oldhttpConfig = HTTPConfig();
+	atProcessor->getHTTPContext(oldhttpConfig);
+
+	HTTPConfig httpConfig = HTTPConfig(bearerId, "www.ya.ru");
 	atProcessor->initialiseHTTPContext(httpConfig);
 	if(r != DCE_OK) {
 		return -1;
 	}
 
 	HTTP_ACTION_STATUS httpActionStatus;
-	r = atProcessor->setCurrentAction(HTTP_ACTION_METHOD_GET, httpActionStatus);
-	if(r != DCE_OK) {
-		return -1;
-	}
+	unsigned char i = 0;
+	do {
+		r = atProcessor->setCurrentAction(HTTP_ACTION_METHOD_GET, httpActionStatus);
+		if(i > 3) {
+			return -1;
+		}
+		i++;
+	} while (r != DCE_OK);
 
 	cout << "HTTP action status ..." << " action=" << httpActionStatus.method << " HTTPCODE=" << httpActionStatus.httpResponcecCode
 			<< " size=" << httpActionStatus.size << endl;
 
 	r = atProcessor->terminateHTTP();
+	if(r != DCE_OK) {
+		return -1;
+	}
+
+	//close connection
+	r = atProcessor->closeIPBearer(bearerId);
 	if(r != DCE_OK) {
 		return -1;
 	}

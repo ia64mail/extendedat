@@ -25,11 +25,11 @@ HTTPConfig::HTTPConfig(const unsigned int bearerProfileID, const char url[URL_MA
 	strcpy(this->url, url);
 
 	setUserAgent("unknown");
-	setProxy("", 0);
-	setRedirection(true);
+	setProxy("0.0.0.0", 0);
+	setRedirection(false);
 	setBreakState(0,0);
 	setTimeout(120);
-	setContentType("");
+	setContentType("text/html");
 }
 
 HTTPConfig::~HTTPConfig() {

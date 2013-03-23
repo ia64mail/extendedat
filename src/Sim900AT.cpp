@@ -397,7 +397,7 @@ int Sim900AT::getListCurrentCalls(CALL_DETAILS * const details, const int &size)
 
 	char n_matches = 10;
 	const char * regex_text = "\r\n\\+CLCC:\\s([[:digit:]]+),([[:digit:]]+),([[:digit:]]+),([[:digit:]]+),([[:digit:]]+)"
-			"(,\"([[:alnum:]]+)\",([[:digit:]]+),\"([[:digit:]]*)\")?\r\n";
+		"(,\"([[:print:]]+)\",([[:digit:]]+),\"([[:digit:]]*)\")?\r\n";
 	const char * responcePointer = responce;
 	int i = 0;
 	bool hasCallRecord = true;
@@ -462,7 +462,7 @@ int Sim900AT::getListCurrentCalls(CALL_DETAILS * const details, const int &size)
 			int callNumberSize = matches[7].rm_eo - matches[7].rm_so;
 			if(callNumberSize > 0) {
 				strncpy(details[i].callOriginalNumber,responce + matches[7].rm_so, callNumberSize);
-				details[i].callOriginalNumber[callNumberSize + 1] = CHAR_TR;
+				details[i].callOriginalNumber[callNumberSize] = CHAR_TR;
 
 				int callNumberTypeVal = strtol(responce + matches[8].rm_so, NULL, 10);
 				switch(callNumberTypeVal) {
@@ -501,7 +501,7 @@ int Sim900AT::getListCurrentCalls(CALL_DETAILS * const details, const int &size)
 
 	//any call state record found
 	if(i==0) {
-		char n_matches = 2;
+		char n_matches = 1;
 		regmatch_t * matches = new regmatch_t[n_matches];
 		resFlag &= (match_regex("^\r\nOK\r\n$", responce, n_matches, matches) == 0);
 		delete [] matches;
@@ -674,7 +674,7 @@ COMMON_AT_RESULT Sim900AT::setIPBearerParameters(const BEARER_PARAMETER_DETAILS 
 	resetLastMobileEquipmentErrorStatus();
 	COMMON_AT_RESULT dceResult = DCE_FAIL;
 
-	char commandTemplate[] = "AT+SAPBR=3,%u,%s,%s\r";
+	char commandTemplate[] = "AT+SAPBR=3,%u,\"%s\",\"%s\"\r";
 	char * command = new char[sizeof(commandTemplate) + sizeof(details)];
 	const char responceSize = 20 + MEE_OFFSET;
 	bool resFlag = true;
@@ -840,7 +840,7 @@ COMMON_AT_RESULT Sim900AT::getIPBearerState(const unsigned int &bearerProfileID,
 
 	char n_matches = 4;
 	regmatch_t * matches = new regmatch_t[n_matches];
-	resFlag &= (match_regex("^\r\n\\+SAPBR:\\s([[:digit:]]+),([[:digit:]]{1}),\"([[:digit:][:d:]]{7,15})\"\r\nOK\r\n$", responce, n_matches, matches) == 0);
+	resFlag &= (match_regex("^\r\n\\+SAPBR:\\s([[:digit:]]+),([[:digit:]]{1}),\"([[:digit:]\\.]{7,15})\"\r\n\r\nOK\r\n$", responce, n_matches, matches) == 0);
 
 	//answer decode fail
 	if(!resFlag) {
@@ -850,6 +850,8 @@ COMMON_AT_RESULT Sim900AT::getIPBearerState(const unsigned int &bearerProfileID,
 		delete [] matches;
 		return dceResult;
 	}
+
+	dceResult = DCE_OK;
 
 	status.bearerProfileID = strtol(responce + matches[1].rm_so, NULL, 10);
 
@@ -869,9 +871,9 @@ COMMON_AT_RESULT Sim900AT::getIPBearerState(const unsigned int &bearerProfileID,
 		break;
 	}
 
-	char ipSize = matches[3].rm_eo - matches[3].rm_so;
+	unsigned char ipSize = matches[3].rm_eo - matches[3].rm_so;
 	strncpy(status.ipAddress, responce + matches[3].rm_so, ipSize);
-	status.ipAddress[ipSize + 1] = CHAR_TR;
+	status.ipAddress[ipSize] = CHAR_TR;
 
 	delete [] responce;
 	delete [] matches;
@@ -1163,6 +1165,9 @@ COMMON_AT_RESULT Sim900AT::getHTTPContext(HTTPConfig &config) {
 	}
 
 	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11*/
+	// Send to UART: "AT+HTTPPARA?\r" in 13 byte(s) [OK]
+	// Receive from UART: "\r\n+HTTPPARA: \r\nCID: 1\r\nURL: \r\nUA: SIMCOM_MODULE\r\nPROIP: 0.0.0.0\r\nPROPORT: 0\r\nREDIR: 0\r\nBREAK: 0\r\nBREAKEND: 0\r\nTIMEOUT: 120\r\nCONTENT: \r\n\r\nOK\r\n" in 141 byte(s) [OK]
+
 	//TODO unknown response format
 /*
 	char n_matches = 10;
@@ -1231,7 +1236,7 @@ COMMON_AT_RESULT Sim900AT::getHTTPContext(HTTPConfig &config) {
 			int callNumberSize = matches[7].rm_eo - matches[7].rm_so;
 			if(callNumberSize > 0) {
 				strncpy(details[i].callOriginalNumber,responce + matches[7].rm_so, callNumberSize);
-				details[i].callOriginalNumber[callNumberSize + 1] = CHAR_TR;
+				details[i].callOriginalNumber[callNumberSize] = CHAR_TR;
 
 				int callNumberTypeVal = strtol(responce + matches[8].rm_so, NULL, 10);
 				switch(callNumberTypeVal) {
@@ -1361,17 +1366,18 @@ COMMON_AT_RESULT Sim900AT::setCurrentAction(const HTTP_ACTION_METHOD &method, HT
 	do {
 		char * const responce = new char[responceSize];
 
-		resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+		int receiveSize = portIO->receiveUART(responce, responceSize);
 
 		//receive fail
+		resFlag &= ( receiveSize > 0);
 		if(!resFlag) {
 			delete [] responce;
 			return dceResult;
 		}
 
-		char n_matches = 6;
+		char n_matches = 7;
 		regmatch_t * matches = new regmatch_t[n_matches];
-		resFlag &= (match_regex("^(\r\nOK\r\n)?(\r\n\\+HTTPACTION:\\s([[:digit:]]),([[:digit:]]{3}),([[:digit:]]+)\r\n)?$",
+		resFlag &= (match_regex("^\r\n(OK\r\n)?((\r\n)?\\+HTTPACTION:([[:digit:]]),([[:digit:]]{3}),([[:digit:]]+)\r\n)?$",
 				responce, n_matches, matches) == 0);
 
 		//answer decode fail
@@ -1386,19 +1392,13 @@ COMMON_AT_RESULT Sim900AT::setCurrentAction(const HTTP_ACTION_METHOD &method, HT
 		//decode first part of answer if present
 		if(!hasFirstResponce && matches[1].rm_so != -1) {
 			hasFirstResponce = true;
-		} else {
-			updateLastMobileEquipmentErrorStatus(responce);
-
-			delete [] responce;
-			delete [] matches;
-			return dceResult;
 		}
 
 		if(!hasSecondResponce && matches[2].rm_so != -1) {
 			hasSecondResponce = true;
 
 			//TODO migrate to Java style enum
-			int methodVal = strtol(responce + matches[3].rm_so, NULL, 10);
+			int methodVal = strtol(responce + matches[4].rm_so, NULL, 10);
 			switch(methodVal) {
 			case 0:
 				status.method = HTTP_ACTION_METHOD_GET;
@@ -1411,15 +1411,16 @@ COMMON_AT_RESULT Sim900AT::setCurrentAction(const HTTP_ACTION_METHOD &method, HT
 				break;
 			}
 
-			status.httpResponcecCode = strtol(responce + matches[4].rm_so, NULL, 10);
-			status.size = strtol(responce + matches[5].rm_so, NULL, 10);
+			status.httpResponcecCode = strtol(responce + matches[5].rm_so, NULL, 10);
+			status.size = strtol(responce + matches[6].rm_so, NULL, 10);
 		}
 
 		delete [] responce;
 		delete [] matches;
 
 		//TODO timeout or better sleep
-	} while (!hasFirstResponce && !hasSecondResponce);
+		sleep(2); /*small delay required!!!*/
+	} while (!hasFirstResponce || !hasSecondResponce);
 
 	dceResult = DCE_OK;
 
