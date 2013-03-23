@@ -116,7 +116,7 @@ int main() {
 	atProcessor->getHTTPContext(oldhttpConfig);
 
 	HTTPConfig httpConfig = HTTPConfig(bearerId, "www.ya.ru");
-	atProcessor->initialiseHTTPContext(httpConfig);
+	atProcessor->updateHTTPContext(httpConfig);
 	if(r != DCE_OK) {
 		return -1;
 	}

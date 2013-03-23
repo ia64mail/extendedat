@@ -1055,28 +1055,25 @@ COMMON_AT_RESULT Sim900AT::setHTTPContext(const HTTPConfig &config, const HTTPCO
 	}
 
 	//set proxy
-	//TODO how to be if context was previously changed and proxy was set ? how to set "disabled value"
-	if(config.isEnabledProxy()) {
-		if(dceResult == DCE_OK && changes.proxyIPChanged) {
-			char * command = new char[sizeof(commandTemplateForStringValue)
-									  + sizeof(config.getProxyIPParamName())
-									  + sizeof(config.getProxyIP())];
-			sprintf(command, commandTemplateForStringValue, config.getProxyIPParamName(), config.getProxyIP());
+	if(dceResult == DCE_OK && changes.proxyIPChanged) {
+		char * command = new char[sizeof(commandTemplateForStringValue)
+		                          + sizeof(config.getProxyIPParamName())
+		                          + sizeof(config.getProxyIP())];
+		sprintf(command, commandTemplateForStringValue, config.getProxyIPParamName(), config.getProxyIP());
 
-			dceResult = configureHTTP(command);
+		dceResult = configureHTTP(command);
 
-			delete [] command;
-		}
-		if(dceResult == DCE_OK && changes.proxyPortChanged) {
-			char * command = new char[sizeof(commandTemplateForIntValue)
-									  + sizeof(config.getProxyPortParamName())
-									  + sizeof(config.getProxyPort())];
-			sprintf(command, commandTemplateForIntValue, config.getProxyPortParamName(), config.getProxyPort());
+		delete [] command;
+	}
+	if(dceResult == DCE_OK && changes.proxyPortChanged) {
+		char * command = new char[sizeof(commandTemplateForIntValue)
+		                          + sizeof(config.getProxyPortParamName())
+		                          + sizeof(config.getProxyPort())];
+		sprintf(command, commandTemplateForIntValue, config.getProxyPortParamName(), config.getProxyPort());
 
-			dceResult = configureHTTP(command);
+		dceResult = configureHTTP(command);
 
-			delete [] command;
-		}
+		delete [] command;
 	}
 
 	//set redirection
@@ -1166,136 +1163,80 @@ COMMON_AT_RESULT Sim900AT::getHTTPContext(HTTPConfig &config) {
 
 	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11*/
 	// Send to UART: "AT+HTTPPARA?\r" in 13 byte(s) [OK]
-	// Receive from UART: "\r\n+HTTPPARA: \r\nCID: 1\r\nURL: \r\nUA: SIMCOM_MODULE\r\nPROIP: 0.0.0.0\r\nPROPORT: 0\r\nREDIR: 0\r\nBREAK: 0\r\nBREAKEND: 0\r\nTIMEOUT: 120\r\nCONTENT: \r\n\r\nOK\r\n" in 141 byte(s) [OK]
+	// Receive from UART: "\r\n+HTTPPARA: \r\nCID: 1\r\nURL: \r\nUA: SIMCOM_MODULE\r\nPROIP: 0.0.0.0\r\n
+	//PROPORT: 0\r\nREDIR: 0\r\nBREAK: 0\r\nBREAKEND: 0\r\nTIMEOUT: 120\r\nCONTENT: \r\n\r\nOK\r\n" in 141 byte(s) [OK]
 
-	//TODO unknown response format
-/*
-	char n_matches = 10;
-	const char * regex_text = "\r\n\\+HTTPPARA:\\s\r\n";
-	const char * responcePointer = responce;
-	int i = 0;
-	bool hasCallRecord = true;
-	while(hasCallRecord) {
-		regmatch_t * matches = new regmatch_t[n_matches];
-		hasCallRecord &= (match_regex(regex_text, responcePointer, n_matches, matches) == 0);
-
-		//if has record about call state and has space for record info, parse it
-		if(hasCallRecord && i < size) {
-			details[i].callID = strtol(responce + matches[1].rm_so, NULL, 10);
-
-			int intVal = strtol(responce + matches[2].rm_so, NULL, 10);
-			switch(intVal) {
-			case 0:
-				details[i].direction = CALLDIRECTION_OUT;
-				break;
-			case 1:
-				details[i].direction = CALLDIRECTION_IN;
-				break;
-			}
-
-			intVal = strtol(responce + matches[3].rm_so, NULL, 10);
-			switch(intVal) {
-			case 0:
-				details[i].status = CALLSTATUS_ACTIVE;
-				break;
-			case 1:
-				details[i].status = CALLSTATUS_HELD;
-				break;
-			case 2:
-				details[i].status = CALLSTATUS_DIALING;
-				break;
-			case 3:
-				details[i].status = CALLSTATUS_ALERTING;
-				break;
-			case 4:
-				details[i].status = CALLSTATUS_INCOMING;
-				break;
-			case 5:
-				details[i].status = CALLSTATUS_WAITING;
-				break;
-			case 6:
-				details[i].status = CALLSTATUS_DISCONNECT;
-				break;
-			}
-
-			intVal = strtol(responce + matches[4].rm_so, NULL, 10);
-			switch(intVal) {
-			case 0:
-				details[i].mode = CALLMODE_VOICE;
-				break;
-			case 1:
-				details[i].mode = CALLMODE_DATA;
-				break;
-			case 2:
-				details[i].mode = CALLMODE_FAX;
-				break;
-			}
-
-			details[i].isConference = strtol(responce + matches[5].rm_so, NULL, 10);
-
-			int callNumberSize = matches[7].rm_eo - matches[7].rm_so;
-			if(callNumberSize > 0) {
-				strncpy(details[i].callOriginalNumber,responce + matches[7].rm_so, callNumberSize);
-				details[i].callOriginalNumber[callNumberSize] = CHAR_TR;
-
-				int callNumberTypeVal = strtol(responce + matches[8].rm_so, NULL, 10);
-				switch(callNumberTypeVal) {
-				case 161:
-					details[i].callNumberType = CALLEDPARTY_NATIOANL;
-					break;
-				case 145:
-					details[i].callNumberType = CALLEDPARTY_INTERNATIONAL;
-					break;
-				case 177:
-					details[i].callNumberType = CALLEDPARTY_NETWORK_SPECIFIC;
-					break;
-				case 193:
-					details[i].callNumberType = CALLEDPARTY_DEDICATED;
-					break;
-				case 129:
-					details[i].callNumberType = CALLEDPARTY_UNKNOWN;
-					break;
-				default:
-					details[i].callNumberType = CALLEDPARTY_UNKNOWN;
-					break;
-				}
-
-				details[i].adressBookId = strtol(responce + matches[9].rm_so, NULL, 10);
-			}
-		}
-
-		//if has record about call state, move pointer to try find next record in response
-		if(hasCallRecord) {
-			responcePointer = responcePointer + matches[0].rm_eo;
-			i++;
-		}
-
-		delete [] matches;
-	}
-
-	//any call state record found
-	if(i==0) {
-		char n_matches = 2;
-		regmatch_t * matches = new regmatch_t[n_matches];
-		resFlag &= (match_regex("^\r\nOK\r\n$", responce, n_matches, matches) == 0);
-		delete [] matches;
-	}
-
-*/
+	char n_matches = 11;
+	const char * regex_text = "\r\n\\+HTTPPARA:\\s\r\nCID:\\s([[:digit:]]+)\r\nURL:\\s([[:print:]]*)\r\n"
+			"UA:\\s([[:print:]]*)\r\nPROIP:\\s([[:digit:]\\.]{7,15})\r\nPROPORT:\\s([[:digit:]]+)\r\n"
+			"REDIR:\\s([[:digit:]]{1})\r\nBREAK:\\s([[:digit:]]+)\r\nBREAKEND:\\s([[:digit:]]+)\r\n"
+			"TIMEOUT:\\s([[:digit:]]+)\r\nCONTENT:\\s([[:print:]]*)\r\n\r\nOK\r\n";
+	regmatch_t * matches = new regmatch_t[n_matches];
+	resFlag &= (match_regex(regex_text, responce, n_matches, matches) == 0);
 
 	//answer decode fail
 	if(!resFlag) {
 		updateLastMobileEquipmentErrorStatus(responce);
 
 		delete [] responce;
-//		delete [] matches;
+		delete [] matches;
 		return dceResult;
 	}
 
 	dceResult = DCE_OK;
 
+	int i;
+	char * strVal;
+	unsigned char valLenght;
+
+	i = 1;
+	config.setBearerProfileID(strtol(responce + matches[i].rm_so, NULL, 10));
+
+	i = 2;
+	strVal = new char[URL_MAX_LENGHT];
+	valLenght =  matches[i].rm_eo - matches[i].rm_so;
+	strncpy(strVal, responce + matches[i].rm_so,valLenght);
+	strVal[valLenght] = CHAR_TR;
+	config.setUrl(strVal);
+	delete strVal;
+
+	i = 3;
+	strVal = new char[USER_AGENT_MAX_LENGHT];
+	valLenght =  matches[i].rm_eo - matches[i].rm_so;
+	strncpy(strVal, responce + matches[i].rm_so,valLenght);
+	strVal[valLenght] = CHAR_TR;
+	config.setUserAgent(strVal);
+	delete strVal;
+
+	i = 4;
+	strVal = new char[16];
+	valLenght =  matches[i].rm_eo - matches[i].rm_so;
+	strncpy(strVal, responce + matches[i].rm_so, valLenght);
+	strVal[valLenght] = CHAR_TR;
+	i = 5;
+	config.setProxy(strVal, strtol(responce + matches[i].rm_so, NULL, 10));
+	delete strVal;
+
+	i = 6;
+	config.setRedirection(strtol(responce + matches[i].rm_so, NULL, 10));
+
+	i = 7;
+	config.setBreakState(strtol(responce + matches[i].rm_so, NULL, 10),
+			strtol(responce + matches[i+1].rm_so, NULL, 10));
+
+	i = 9;
+	config.setTimeout(strtol(responce + matches[i].rm_so, NULL, 10));
+
+	i = 10;
+	strVal = new char[CONTENT_TYPE_MAX_LENGHT];
+	valLenght =  matches[i].rm_eo - matches[i].rm_so;
+	strncpy(strVal, responce + matches[i].rm_so,valLenght);
+	strVal[valLenght] = CHAR_TR;
+	config.setContentType(strVal);
+	delete strVal;
+
 	delete [] responce;
-//	delete [] matches;
+	delete [] matches;
 	return dceResult;
 }
 

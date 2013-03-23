@@ -35,6 +35,10 @@ HTTPConfig::HTTPConfig(const unsigned int bearerProfileID, const char url[URL_MA
 HTTPConfig::~HTTPConfig() {
 }
 
+void HTTPConfig::setBearerProfileID(const char id){
+	this->bearerProfileID = id;
+}
+
 void HTTPConfig::setUrl(const char url[URL_MAX_LENGHT]) {
 	strcpy(this->url, url);
 }
@@ -166,46 +170,44 @@ const bool HTTPConfig::isEnabledBreakState() const {
 int HTTPConfig::compareWith(const HTTPConfig &config, HTTPCONFIG_CHANGES &changes) const {
 	int nChanges = 0;
 
-	while(true) {
-		if((changes.bearerProfileChanged = (getBearerProfileID() == config.getBearerProfileID())) == true) {
-			nChanges++;;
-		}
+	if((changes.bearerProfileChanged = (getBearerProfileID() != config.getBearerProfileID())) == true) {
+		nChanges++;;
+	}
 
-		if((changes.urlChanged = (strcmp(getUrl(), config.getUrl()) == 0)) == true) {
-			nChanges++;
-		}
+	if((changes.urlChanged = (strcmp(getUrl(), config.getUrl()) != 0)) == true) {
+		nChanges++;
+	}
 
-		if((changes.userAgentChanged = (strcmp(getUserAgent(), config.getUserAgent()) == 0)) == true) {
-			nChanges++;
-		}
+	if((changes.userAgentChanged = (strcmp(getUserAgent(), config.getUserAgent()) != 0)) == true) {
+		nChanges++;
+	}
 
-		if((changes.proxyIPChanged = (strcmp(getProxyIP(), config.getProxyIP()) == 0)) == true) {
-			nChanges++;
-		}
+	if((changes.proxyIPChanged = (strcmp(getProxyIP(), config.getProxyIP()) != 0)) == true) {
+		nChanges++;
+	}
 
-		if((changes.proxyPortChanged = (getProxyPort() == config.getProxyPort())) == true) {
-			nChanges++;
-		}
+	if((changes.proxyPortChanged = (getProxyPort() != config.getProxyPort())) == true) {
+		nChanges++;
+	}
 
-		if((changes.redirectionChanged = (isEnabledRedirection() == config.isEnabledRedirection())) == true) {
-			nChanges++;
-		}
+	if((changes.redirectionChanged = (isEnabledRedirection() != config.isEnabledRedirection())) == true) {
+		nChanges++;
+	}
 
-		if((changes.breakStartPosChanged = (getBreakStartPos() == config.getBreakStartPos())) == true) {
-			nChanges++;
-		}
+	if((changes.breakStartPosChanged = (getBreakStartPos() != config.getBreakStartPos())) == true) {
+		nChanges++;
+	}
 
-		if((changes.breakEndPosChanged = (getBreakEndPos() == config.getBreakEndPos())) == true) {
-			nChanges++;
-		}
+	if((changes.breakEndPosChanged = (getBreakEndPos() != config.getBreakEndPos())) == true) {
+		nChanges++;
+	}
 
-		if((changes.timeoutChanged = (getTimeout() == config.getTimeout())) == true) {
-			nChanges++;
-		}
+	if((changes.timeoutChanged = (getTimeout() != config.getTimeout())) == true) {
+		nChanges++;
+	}
 
-		if((changes.contentTypeChanged = (strcmp(getContentType(), config.getContentType()) == 0)) == true) {
-			nChanges++;
-		}
+	if((changes.contentTypeChanged = (strcmp(getContentType(), config.getContentType()) != 0)) == true) {
+		nChanges++;
 	}
 
 	return nChanges;

@@ -71,6 +71,7 @@ public:
 	HTTPConfig(const unsigned int bearerProfileID = 0, const char url[URL_MAX_LENGHT] = "");
 	virtual ~HTTPConfig();
 
+	void setBearerProfileID(const char id);
 	void setUrl(const char url[URL_MAX_LENGHT]);
 	void setUserAgent(const char userAgent[USER_AGENT_MAX_LENGHT]);
 	void setProxy(const char proxyIP[16], unsigned int proxyPort);
