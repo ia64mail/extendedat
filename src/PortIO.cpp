@@ -20,6 +20,42 @@ PortIO::~PortIO() {
 	}
 }
 
+int PortIO::receiveRawUART(char * const buffer, const int size) const {
+	char *buffPtr; /* Current char in buffer */
+	int nBytes; /* Number of bytes read */
+	int totalBytes = 0; /* Number of total bytes read */
+
+	#ifdef LOGGING
+		cout << "Receive RAW from UART: ";
+	#endif
+
+	//receive AT response
+	//try few times to ensure that all data received
+	buffPtr = buffer;
+	for (int tries = 0; tries < TOTAL_TRIES; tries++) {
+		//read from port until 0 bytes received
+		while ((nBytes = read(pd, buffPtr, buffer - buffPtr + size)) > 0) {
+			buffPtr += nBytes;
+			totalBytes += nBytes;
+		}
+
+		//break if buffer already full
+		if(buffer - buffPtr == size) {
+			break;
+		}
+	}
+
+	#ifdef LOGGING
+			cout << "\"";
+			Util::writeEncoded(buffer, totalBytes);
+			cout << "\"";
+			cout << " in " << totalBytes << " byte(s)";
+			cout << " [OK]" << endl;
+	#endif
+
+	return totalBytes;
+}
+
 int PortIO::receiveUART(char * const buffer, const int size) const {
 	char *buffPtr; /* Current char in buffer */
 	int nBytes; /* Number of bytes read */

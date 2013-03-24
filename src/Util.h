@@ -15,7 +15,7 @@ private:
 	Util();
 	virtual ~Util();
 public:
-	static void writeEncoded(const char * const buffer);
+	static void writeEncoded(const char * const buffer, const unsigned int size = 0);
 };
 
 #endif /* UTIL_H_ */

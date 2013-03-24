@@ -51,6 +51,15 @@ public:
 	int receiveUART(char * const buffer, const int size) const;
 
 	/**
+	 * Receive raw AT response from UART port.
+	 * Buffer will not terminated by null terminated key code
+	 * and UART will be unloaded only for specified size
+	 *
+	 * @return count of received bytes
+	 */
+	int receiveRawUART(char * const buffer, const int size) const;
+
+	/**
 	 * Send an AT command to UART port.
 	 * Command should be assembled with final <CR> key code.
 	 *

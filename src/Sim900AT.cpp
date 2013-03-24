@@ -601,6 +601,61 @@ COMMON_AT_RESULT  Sim900AT::hangUpCall(const HANGUP_MODE mode) {
 	return dceResult;
 }
 
+COMMON_AT_RESULT Sim900AT::startUSSDCall(const char * const ussdRequest, char * const ussdResponse){
+	resetLastMobileEquipmentErrorStatus();
+	COMMON_AT_RESULT dceResult = DCE_FAIL;
+
+	char commandTemplate[] = "AT+CUSD=1,\"%s\"\r";
+	char * command = new char[sizeof(commandTemplate)];
+	const short responceSize = 250 + MEE_OFFSET;
+	bool resFlag = true;
+
+	sprintf(command, commandTemplate, ussdRequest);
+	resFlag &= (portIO->sendUART(command) > 0);
+
+	delete [] command;
+
+	//send fail
+	if(!resFlag) {
+		return dceResult;
+	}
+
+	//TODO
+	sleep(10);
+
+	char * const responce = new char[responceSize];
+	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+
+	//receive fail
+	if(!resFlag) {
+		delete [] responce;
+		return dceResult;
+	}
+
+	char n_matches = 2;
+	regmatch_t * matches = new regmatch_t[n_matches];
+	resFlag &= (match_regex("\r\nOK\r\n\r\n\\+CUSD:\\s0,\"(.*)\",([[:digit:]]+)\r\n$", responce, n_matches, matches) == 0);
+
+	//answer decode fail
+	if(!resFlag) {
+		updateLastMobileEquipmentErrorStatus(responce);
+
+		delete [] responce;
+		delete [] matches;
+		return dceResult;
+	}
+
+	dceResult = DCE_OK;
+
+	int responceLenght = matches[1].rm_eo - matches[1].rm_so;
+	strncpy(ussdResponse, responce + matches[1].rm_so, responceLenght);
+	ussdResponse[responceLenght] = CHAR_TR;
+
+	delete [] responce;
+	delete [] matches;
+	return dceResult;
+}
+
 COMMON_AT_RESULT Sim900AT::definePaketDataProtocolContextProfile(const PDP_CONTEXT_DETAILS &details) {
 	resetLastMobileEquipmentErrorStatus();
 	COMMON_AT_RESULT dceResult = DCE_FAIL;
@@ -1161,11 +1216,6 @@ COMMON_AT_RESULT Sim900AT::getHTTPContext(HTTPConfig &config) {
 		return dceResult;
 	}
 
-	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11*/
-	// Send to UART: "AT+HTTPPARA?\r" in 13 byte(s) [OK]
-	// Receive from UART: "\r\n+HTTPPARA: \r\nCID: 1\r\nURL: \r\nUA: SIMCOM_MODULE\r\nPROIP: 0.0.0.0\r\n
-	//PROPORT: 0\r\nREDIR: 0\r\nBREAK: 0\r\nBREAKEND: 0\r\nTIMEOUT: 120\r\nCONTENT: \r\n\r\nOK\r\n" in 141 byte(s) [OK]
-
 	char n_matches = 11;
 	const char * regex_text = "\r\n\\+HTTPPARA:\\s\r\nCID:\\s([[:digit:]]+)\r\nURL:\\s([[:print:]]*)\r\n"
 			"UA:\\s([[:print:]]*)\r\nPROIP:\\s([[:digit:]\\.]{7,15})\r\nPROPORT:\\s([[:digit:]]+)\r\n"
@@ -1270,7 +1320,7 @@ COMMON_AT_RESULT Sim900AT::updateHTTPContext(const HTTPConfig &config) {
 	return dceResult;
 }
 
-COMMON_AT_RESULT Sim900AT::setCurrentAction(const HTTP_ACTION_METHOD &method, HTTP_ACTION_STATUS &status) {
+COMMON_AT_RESULT Sim900AT::setCurrentHTTPAction(const HTTP_ACTION_METHOD &method, HTTP_ACTION_STATUS &status) {
 	resetLastMobileEquipmentErrorStatus();
 	COMMON_AT_RESULT dceResult = DCE_FAIL;
 
@@ -1365,5 +1415,100 @@ COMMON_AT_RESULT Sim900AT::setCurrentAction(const HTTP_ACTION_METHOD &method, HT
 
 	dceResult = DCE_OK;
 
+	return dceResult;
+}
+
+COMMON_AT_RESULT Sim900AT::readHTTPResponse(const int startAdress, const int size, char * const response){
+	resetLastMobileEquipmentErrorStatus();
+	COMMON_AT_RESULT dceResult = DCE_FAIL;
+
+	char commandTemplate[] = "AT+HTTPREAD=%u,%u\r";
+	char * command = new char[sizeof(commandTemplate) + 16];
+	bool resFlag = true;
+
+	sprintf(command, commandTemplate, startAdress, size);
+	resFlag &= (portIO->sendUART(command) > 0);
+
+	//send fail
+	if(!resFlag) {
+		return dceResult;
+	}
+
+	//Read HEADER of response with '+HTTPREAD: <data_len>' signature
+	unsigned int responsePartSize = 25;
+	char * responsePart = new char[responsePartSize];
+	resFlag &= (portIO->receiveRawUART(responsePart, responsePartSize) > 0);
+
+	//receive HEADER fail
+	if(!resFlag) {
+		delete [] responsePart;
+		return dceResult;
+	}
+
+	//decode HEADER
+	char n_matches = 3;
+	regmatch_t * matches = new regmatch_t[n_matches];
+	resFlag &= (match_regex("^\r\n\\+HTTPREAD:([[:digit:]]+)\r\n(.*)", responsePart, n_matches, matches) == 0);
+
+	//answer decode fail
+	if(!resFlag) {
+		updateLastMobileEquipmentErrorStatus(responsePart);
+
+		delete [] responsePart;
+		delete [] matches;
+		return dceResult;
+	}
+
+	//get response data length
+	unsigned int methodVal = strtol(responsePart + matches[1].rm_so, NULL, 10);
+
+	//get response data part
+	unsigned int responsePartDataSize = matches[2].rm_eo - matches[2].rm_so;
+	strncpy(response, responsePart + matches[2].rm_so, responsePartDataSize);
+
+	//move response part pointer to remained part
+	char * responseRemainPart = response + responsePartDataSize;
+	responsePartDataSize = size - responsePartDataSize;
+
+	//Read DATA part of response until 'OK' signature
+	resFlag &= (portIO->receiveRawUART(responseRemainPart, responsePartDataSize) > 0);
+
+	//receive HEADER fail
+	if(!resFlag) {
+		delete [] responsePart;
+		return dceResult;
+	}
+
+	//Read FOOTER of response with 'OK' signature
+	delete [] responsePart;
+	responsePartSize = 7;
+	responsePart = new char[responsePartSize];
+	resFlag &= (portIO->receiveRawUART(responsePart, responsePartSize) > 0);
+
+	//receive FOOTER fail
+	if(!resFlag) {
+		delete [] responsePart;
+		return dceResult;
+	}
+
+	//decode FOOTER
+	delete [] matches;
+	n_matches = 1;
+	matches = new regmatch_t[n_matches];
+	resFlag &= (match_regex("\r\nOK\r\n$", responsePart, n_matches, matches) == 0);
+
+	//answer decode fail
+	if(!resFlag) {
+		updateLastMobileEquipmentErrorStatus(responsePart);
+
+		delete [] responsePart;
+		delete [] matches;
+		return dceResult;
+	}
+
+	dceResult = DCE_OK;
+
+	delete [] responsePart;
+	delete [] matches;
 	return dceResult;
 }

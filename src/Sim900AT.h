@@ -214,9 +214,13 @@ public:
 	COMMON_AT_RESULT testAT();
 	SIMCARD_STATE checkSimCardLockState();
 	COMMON_AT_RESULT unlockSimCard(const char * const password);
+
 	CALL_STATE startCall(const char * const phoneNumber, const bool isVoice = false);
 	int getListCurrentCalls(CALL_DETAILS * const details, const int &size);
 	COMMON_AT_RESULT hangUpCall(const HANGUP_MODE mode = HANGUP_ALL);
+
+	COMMON_AT_RESULT startUSSDCall(const char * const ussdRequest, char * const ussdResponse);
+
 	COMMON_AT_RESULT definePaketDataProtocolContextProfile(const PDP_CONTEXT_DETAILS &details);
 
 	COMMON_AT_RESULT setIPBearerParameters(const BEARER_PARAMETER_DETAILS &details);
@@ -231,7 +235,8 @@ public:
 	COMMON_AT_RESULT initialiseHTTPContext(const HTTPConfig &config);
 	COMMON_AT_RESULT updateHTTPContext(const HTTPConfig &config);
 
-	COMMON_AT_RESULT setCurrentAction(const HTTP_ACTION_METHOD &method, HTTP_ACTION_STATUS &status);
+	COMMON_AT_RESULT setCurrentHTTPAction(const HTTP_ACTION_METHOD &method, HTTP_ACTION_STATUS &status);
+	COMMON_AT_RESULT readHTTPResponse(const int startAdress, const int size, char * const response);
 };
 
 #endif /* SIM900AT_H_ */

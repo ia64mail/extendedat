@@ -16,11 +16,12 @@ Util::~Util() {
 /**
  * Write buffer to output. Control chars will be encoded.
  */
-void Util::writeEncoded(const char * const buffer) {
+void Util::writeEncoded(const char * const buffer, const unsigned int size) {
 	using namespace std;
 
 	const char * buffPtr = buffer;
-	while (*buffPtr != CHAR_TR) {
+	unsigned short i = 0;
+	while (*buffPtr != CHAR_TR || (size > 0 && i < size)) {
 		if(iscntrl(*buffPtr)) {
 			switch(*buffPtr) {
 				case CHAR_NL : cout << "\\n";
@@ -35,6 +36,11 @@ void Util::writeEncoded(const char * const buffer) {
 		}
 
 		buffPtr++;
+		i++;
+	}
+
+	if(size != 0) {
+		cout << "\0";
 	}
 }
 

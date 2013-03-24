@@ -36,6 +36,7 @@ int main() {
 	/**
 	 * Test voice call
 	 */
+/*
 	CALL_DETAILS * cd = new CALL_DETAILS[3];
 	atProcessor->getListCurrentCalls(cd, 3);
 	delete [] cd;
@@ -51,7 +52,19 @@ int main() {
 	cd = new CALL_DETAILS[3];
 	atProcessor->getListCurrentCalls(cd, 3);
 	delete [] cd;
+*/
 
+	/**
+	 * Test USSD
+	 */
+/**/
+	char ussdResponce[250];
+	r = atProcessor->startUSSDCall("*101#", ussdResponce);
+	cout << "Balance check response: " << ussdResponce << endl;
+	if(r != DCE_OK) {
+		return -1;
+	}
+/**/
 	/**
 	 * Create GPRS connection for HTTP AT commands
 	 */
@@ -82,7 +95,7 @@ int main() {
 	}
 
 	//open connection
-	sleep(3); /*small delay required!!!*/
+	sleep(5); /*small delay required!!!*/
 	r = atProcessor->openIPBearer(bearerId);
 	if(r != DCE_OK) {
 		//return -1;
@@ -115,7 +128,7 @@ int main() {
 	HTTPConfig oldhttpConfig = HTTPConfig();
 	atProcessor->getHTTPContext(oldhttpConfig);
 
-	HTTPConfig httpConfig = HTTPConfig(bearerId, "www.ya.ru");
+	HTTPConfig httpConfig = HTTPConfig(bearerId, "http://ya.ru/");
 	atProcessor->updateHTTPContext(httpConfig);
 	if(r != DCE_OK) {
 		return -1;
@@ -124,7 +137,7 @@ int main() {
 	HTTP_ACTION_STATUS httpActionStatus;
 	unsigned char i = 0;
 	do {
-		r = atProcessor->setCurrentAction(HTTP_ACTION_METHOD_GET, httpActionStatus);
+		r = atProcessor->setCurrentHTTPAction(HTTP_ACTION_METHOD_GET, httpActionStatus);
 		if(i > 3) {
 			return -1;
 		}
@@ -133,6 +146,13 @@ int main() {
 
 	cout << "HTTP action status ..." << " action=" << httpActionStatus.method << " HTTPCODE=" << httpActionStatus.httpResponcecCode
 			<< " size=" << httpActionStatus.size << endl;
+
+	char * readBuffer = new char[httpActionStatus.size];
+	r = atProcessor->readHTTPResponse(0, httpActionStatus.size, readBuffer);
+	delete [] readBuffer;
+	if(r != DCE_OK) {
+		return -1;
+	}
 
 	r = atProcessor->terminateHTTP();
 	if(r != DCE_OK) {
