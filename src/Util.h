@@ -10,12 +10,16 @@
 #ifndef UTIL_H_
 #define UTIL_H_
 
+/**
+ * Helper class for service usage.
+ * This is singleton with static methods.
+ */
 class Util {
 private:
 	Util();
 	virtual ~Util();
 public:
-	static void writeEncoded(const char * const buffer, const unsigned int size = 0);
+	static void writeEncoded(const char * const buffer, const unsigned int length = 0);
 };
 
 #endif /* UTIL_H_ */

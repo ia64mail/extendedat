@@ -96,7 +96,7 @@ COMMON_AT_RESULT Sim900AT::testAT(){
 	const char responceSize = 7 + MEE_OFFSET;
 	bool resFlag = true;
 
-	resFlag &= (portIO->sendUART(command) > 0);
+	resFlag &= (portIO->sendToPort(command) > 0);
 
 	//send fail
 	if(!resFlag) {
@@ -104,7 +104,7 @@ COMMON_AT_RESULT Sim900AT::testAT(){
 	}
 
 	char * const responce = new char[responceSize];
-	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+	resFlag &= (portIO->receiveFromPort(responce, responceSize) > 0);
 
 	//receive fail
 	if(!resFlag) {
@@ -155,7 +155,7 @@ SIMCARD_STATE Sim900AT::checkSimCardLockState(){
 	const char responceSize = 25 + MEE_OFFSET;
 	bool resFlag = true;
 
-	resFlag &= (portIO->sendUART(command) > 0);
+	resFlag &= (portIO->sendToPort(command) > 0);
 
 	//send fail
 	if(!resFlag) {
@@ -163,7 +163,7 @@ SIMCARD_STATE Sim900AT::checkSimCardLockState(){
 	}
 
 	char * const responce = new char[responceSize];
-	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+	resFlag &= (portIO->receiveFromPort(responce, responceSize) > 0);
 
 	//receive fail
 	if(!resFlag) {
@@ -241,7 +241,7 @@ COMMON_AT_RESULT Sim900AT::unlockSimCard(const char * const password) {
 	bool resFlag = true;
 
 	sprintf(command, commandTemplate, password);
-	resFlag &= (portIO->sendUART(command) > 0);
+	resFlag &= (portIO->sendToPort(command) > 0);
 
 	delete [] command;
 
@@ -251,7 +251,7 @@ COMMON_AT_RESULT Sim900AT::unlockSimCard(const char * const password) {
 	}
 
 	char * const responce = new char[responceSize];
-	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+	resFlag &= (portIO->receiveFromPort(responce, responceSize) > 0);
 
 	//receive fail
 	if(!resFlag) {
@@ -304,7 +304,7 @@ CALL_STATE Sim900AT::startCall(const char * const phoneNumber, const bool isVoic
 	bool resFlag = true;
 
 	sprintf(command, commandTemplate, phoneNumber, semicolon);
-	resFlag &= (portIO->sendUART(command) > 0);
+	resFlag &= (portIO->sendToPort(command) > 0);
 
 	delete [] command;
 
@@ -314,7 +314,7 @@ CALL_STATE Sim900AT::startCall(const char * const phoneNumber, const bool isVoic
 	}
 
 	char * const responce = new char[responceSize];
-	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+	resFlag &= (portIO->receiveFromPort(responce, responceSize) > 0);
 
 	//receive fail
 	if(!resFlag) {
@@ -379,7 +379,7 @@ int Sim900AT::getListCurrentCalls(CALL_DETAILS * const details, const int &size)
 	const int responceSize = (sizeof(CALL_DETAILS) + 15) * size + 6 + MEE_OFFSET;
 	bool resFlag = true;
 
-	resFlag &= (portIO->sendUART(command) > 0);
+	resFlag &= (portIO->sendToPort(command) > 0);
 
 	//send fail
 	if(!resFlag) {
@@ -387,7 +387,7 @@ int Sim900AT::getListCurrentCalls(CALL_DETAILS * const details, const int &size)
 	}
 
 	char * const responce = new char[responceSize];
-	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+	resFlag &= (portIO->receiveFromPort(responce, responceSize) > 0);
 
 	//receive fail
 	if(!resFlag) {
@@ -556,7 +556,7 @@ COMMON_AT_RESULT  Sim900AT::hangUpCall(const HANGUP_MODE mode) {
 	}
 
 	sprintf(command, commandTemplate, modeVal);
-	resFlag &= (portIO->sendUART(command) > 0);
+	resFlag &= (portIO->sendToPort(command) > 0);
 
 	delete [] command;
 
@@ -566,7 +566,7 @@ COMMON_AT_RESULT  Sim900AT::hangUpCall(const HANGUP_MODE mode) {
 	}
 
 	char * const responce = new char[responceSize];
-	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+	resFlag &= (portIO->receiveFromPort(responce, responceSize) > 0);
 
 	//receive fail
 	if(!resFlag) {
@@ -611,7 +611,7 @@ COMMON_AT_RESULT Sim900AT::startUSSDCall(const char * const ussdRequest, char * 
 	bool resFlag = true;
 
 	sprintf(command, commandTemplate, ussdRequest);
-	resFlag &= (portIO->sendUART(command) > 0);
+	resFlag &= (portIO->sendToPort(command) > 0);
 
 	delete [] command;
 
@@ -624,7 +624,7 @@ COMMON_AT_RESULT Sim900AT::startUSSDCall(const char * const ussdRequest, char * 
 	sleep(10);
 
 	char * const responce = new char[responceSize];
-	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+	resFlag &= (portIO->receiveFromPort(responce, responceSize) > 0);
 
 	//receive fail
 	if(!resFlag) {
@@ -675,7 +675,7 @@ COMMON_AT_RESULT Sim900AT::definePaketDataProtocolContextProfile(const PDP_CONTE
 
 	sprintf(command, commandTemplate, details.contextProfileID, details.accessPointName,
 			details.ipAddress, details.dataCompresionLevel, details.headerCompresionLevel);
-	resFlag &= (portIO->sendUART(command) > 0);
+	resFlag &= (portIO->sendToPort(command) > 0);
 
 	delete [] command;
 
@@ -685,7 +685,7 @@ COMMON_AT_RESULT Sim900AT::definePaketDataProtocolContextProfile(const PDP_CONTE
 	}
 
 	char * const responce = new char[responceSize];
-	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+	resFlag &= (portIO->receiveFromPort(responce, responceSize) > 0);
 
 	//receive fail
 	if(!resFlag) {
@@ -757,7 +757,7 @@ COMMON_AT_RESULT Sim900AT::setIPBearerParameters(const BEARER_PARAMETER_DETAILS 
 	}
 
 	sprintf(command, commandTemplate, details.bearerProfileID, paramNameVal, details.paramValue);
-	resFlag &= (portIO->sendUART(command) > 0);
+	resFlag &= (portIO->sendToPort(command) > 0);
 
 	delete [] command;
 
@@ -767,7 +767,7 @@ COMMON_AT_RESULT Sim900AT::setIPBearerParameters(const BEARER_PARAMETER_DETAILS 
 	}
 
 	char * const responce = new char[responceSize];
-	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+	resFlag &= (portIO->receiveFromPort(responce, responceSize) > 0);
 
 	//receive fail
 	if(!resFlag) {
@@ -812,7 +812,7 @@ COMMON_AT_RESULT Sim900AT::changeStateIPBearer(const unsigned int &bearerProfile
 	bool resFlag = true;
 
 	sprintf(command, commandTemplate, changeStateCode, bearerProfileID);
-	resFlag &= (portIO->sendUART(command) > 0);
+	resFlag &= (portIO->sendToPort(command) > 0);
 
 	delete [] command;
 
@@ -822,7 +822,7 @@ COMMON_AT_RESULT Sim900AT::changeStateIPBearer(const unsigned int &bearerProfile
 	}
 
 	char * const responce = new char[responceSize];
-	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+	resFlag &= (portIO->receiveFromPort(responce, responceSize) > 0);
 
 	//receive fail
 	if(!resFlag) {
@@ -875,7 +875,7 @@ COMMON_AT_RESULT Sim900AT::getIPBearerState(const unsigned int &bearerProfileID,
 	bool resFlag = true;
 
 	sprintf(command, commandTemplate, bearerProfileID);
-	resFlag &= (portIO->sendUART(command) > 0);
+	resFlag &= (portIO->sendToPort(command) > 0);
 
 	delete [] command;
 
@@ -885,7 +885,7 @@ COMMON_AT_RESULT Sim900AT::getIPBearerState(const unsigned int &bearerProfileID,
 	}
 
 	char * const responce = new char[responceSize];
-	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+	resFlag &= (portIO->receiveFromPort(responce, responceSize) > 0);
 
 	//receive fail
 	if(!resFlag) {
@@ -943,7 +943,7 @@ COMMON_AT_RESULT Sim900AT::initialiseHTTP(){
 	const char responceSize = 7 + MEE_OFFSET;
 	bool resFlag = true;
 
-	resFlag &= (portIO->sendUART(command) > 0);
+	resFlag &= (portIO->sendToPort(command) > 0);
 
 	//send fail
 	if(!resFlag) {
@@ -951,7 +951,7 @@ COMMON_AT_RESULT Sim900AT::initialiseHTTP(){
 	}
 
 	char * const responce = new char[responceSize];
-	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+	resFlag &= (portIO->receiveFromPort(responce, responceSize) > 0);
 
 	//receive fail
 	if(!resFlag) {
@@ -987,7 +987,7 @@ COMMON_AT_RESULT Sim900AT::terminateHTTP() {
 	const char responceSize = 7 + MEE_OFFSET;
 	bool resFlag = true;
 
-	resFlag &= (portIO->sendUART(command) > 0);
+	resFlag &= (portIO->sendToPort(command) > 0);
 
 	//send fail
 	if(!resFlag) {
@@ -995,7 +995,7 @@ COMMON_AT_RESULT Sim900AT::terminateHTTP() {
 	}
 
 	char * const responce = new char[responceSize];
-	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+	resFlag &= (portIO->receiveFromPort(responce, responceSize) > 0);
 
 	//receive fail
 	if(!resFlag) {
@@ -1030,7 +1030,7 @@ COMMON_AT_RESULT Sim900AT::configureHTTP(const char * atCommand) {
 	const char responceSize = 7 + MEE_OFFSET;
 	bool resFlag = true;
 
-	resFlag &= (portIO->sendUART(atCommand) > 0);
+	resFlag &= (portIO->sendToPort(atCommand) > 0);
 
 	//send fail
 	if(!resFlag) {
@@ -1038,7 +1038,7 @@ COMMON_AT_RESULT Sim900AT::configureHTTP(const char * atCommand) {
 	}
 
 	char * const responce = new char[responceSize];
-	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+	resFlag &= (portIO->receiveFromPort(responce, responceSize) > 0);
 
 	//receive fail
 	if(!resFlag) {
@@ -1200,7 +1200,7 @@ COMMON_AT_RESULT Sim900AT::getHTTPContext(HTTPConfig &config) {
 	const short responceSize = sizeof(config) + 20 + MEE_OFFSET;
 	bool resFlag = true;
 
-	resFlag &= (portIO->sendUART(command) > 0);
+	resFlag &= (portIO->sendToPort(command) > 0);
 
 	//send fail
 	if(!resFlag) {
@@ -1208,7 +1208,7 @@ COMMON_AT_RESULT Sim900AT::getHTTPContext(HTTPConfig &config) {
 	}
 
 	char * const responce = new char[responceSize];
-	resFlag &= (portIO->receiveUART(responce, responceSize) > 0);
+	resFlag &= (portIO->receiveFromPort(responce, responceSize) > 0);
 
 	//receive fail
 	if(!resFlag) {
@@ -1344,7 +1344,7 @@ COMMON_AT_RESULT Sim900AT::setCurrentHTTPAction(const HTTP_ACTION_METHOD &method
 	}
 
 	sprintf(command, commandTemplate, methodVal);
-	resFlag &= (portIO->sendUART(command) > 0);
+	resFlag &= (portIO->sendToPort(command) > 0);
 
 	//send fail
 	if(!resFlag) {
@@ -1357,7 +1357,7 @@ COMMON_AT_RESULT Sim900AT::setCurrentHTTPAction(const HTTP_ACTION_METHOD &method
 	do {
 		char * const responce = new char[responceSize];
 
-		int receiveSize = portIO->receiveUART(responce, responceSize);
+		int receiveSize = portIO->receiveFromPort(responce, responceSize);
 
 		//receive fail
 		resFlag &= ( receiveSize > 0);
@@ -1427,7 +1427,7 @@ COMMON_AT_RESULT Sim900AT::readHTTPResponse(const int startAdress, const int siz
 	bool resFlag = true;
 
 	sprintf(command, commandTemplate, startAdress, size);
-	resFlag &= (portIO->sendUART(command) > 0);
+	resFlag &= (portIO->sendToPort(command) > 0);
 
 	//send fail
 	if(!resFlag) {
@@ -1437,7 +1437,7 @@ COMMON_AT_RESULT Sim900AT::readHTTPResponse(const int startAdress, const int siz
 	//Read HEADER of response with '+HTTPREAD: <data_len>' signature
 	unsigned int responsePartSize = 25;
 	char * responsePart = new char[responsePartSize];
-	resFlag &= (portIO->receiveRawUART(responsePart, responsePartSize) > 0);
+	resFlag &= (portIO->receiveRawFromPort(responsePart, responsePartSize) > 0);
 
 	//receive HEADER fail
 	if(!resFlag) {
@@ -1471,7 +1471,7 @@ COMMON_AT_RESULT Sim900AT::readHTTPResponse(const int startAdress, const int siz
 	responsePartDataSize = size - responsePartDataSize;
 
 	//Read DATA part of response until 'OK' signature
-	resFlag &= (portIO->receiveRawUART(responseRemainPart, responsePartDataSize) > 0);
+	resFlag &= (portIO->receiveRawFromPort(responseRemainPart, responsePartDataSize) > 0);
 
 	//receive HEADER fail
 	if(!resFlag) {
@@ -1483,7 +1483,7 @@ COMMON_AT_RESULT Sim900AT::readHTTPResponse(const int startAdress, const int siz
 	delete [] responsePart;
 	responsePartSize = 7;
 	responsePart = new char[responsePartSize];
-	resFlag &= (portIO->receiveRawUART(responsePart, responsePartSize) > 0);
+	resFlag &= (portIO->receiveRawFromPort(responsePart, responsePartSize) > 0);
 
 	//receive FOOTER fail
 	if(!resFlag) {
