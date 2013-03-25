@@ -13,10 +13,22 @@
 #ifndef HTTPCONFIG_H_
 #define HTTPCONFIG_H_
 
-#define URL_MAX_LENGHT 256
-#define USER_AGENT_MAX_LENGHT 100
-#define CONTENT_TYPE_MAX_LENGHT 100
+#define URL_MAX_LENGHT 257 /*max length of URL parameter value (include terminate key code)*/
+#define USER_AGENT_MAX_LENGHT 101 /*max length of USER AGENT parameter value (include terminate key code)*/
+#define CONTENT_TYPE_MAX_LENGHT 101 /*max length of CONTENT TYPE parameter value (include terminate key code)*/
+#define IP_MAX_LENGHT 16 /*max length of PROXY IP parameter value (include terminate key code)*/
 
+#define DEFAULT_USER_AGENT "unknown" /*default value for user agent*/
+#define DEFAULT_PROXY_IP "0.0.0.0" /*default proxy IP address*/
+#define DEFAULT_PROXY_PORT 0 /*default proxy port*/
+#define DEFAULT_REDIRECTION false /*default redirection state*/
+#define DEFAULT_TIMEOUT 120 /*default timeout*/
+#define DEFAULT_CONTENT_TYPE "text/html" /*default content type*/
+
+/**
+ * Structure for tracking HTTPConfig changes.
+ * Each field indicate change status.
+ */
 struct HTTPCONFIG_CHANGES {
 	bool bearerProfileChanged;
 	bool urlChanged;
@@ -44,8 +56,15 @@ struct HTTPCONFIG_CHANGES {
 	}
 };
 
+/**
+ * This class represent configuration information
+ * for setup http-action context.
+ */
 class HTTPConfig {
 private:
+	/**
+	 * Block of configuration parameter names.
+	 */
 	static const char bearerProfileParamName[4];
 	static const char urlParamName[4];
 	static const char userAgentParamName[3];
@@ -60,7 +79,7 @@ private:
 	unsigned int bearerProfileID;
 	char url[URL_MAX_LENGHT];
 	char userAgent[USER_AGENT_MAX_LENGHT];
-	char proxyIP[16];
+	char proxyIP[IP_MAX_LENGHT];
 	unsigned int proxyPort;
 	bool enableRedirection;
 	unsigned int breakStartPos;
@@ -74,10 +93,10 @@ public:
 	void setBearerProfileID(const char id);
 	void setUrl(const char url[URL_MAX_LENGHT]);
 	void setUserAgent(const char userAgent[USER_AGENT_MAX_LENGHT]);
-	void setProxy(const char proxyIP[16], unsigned int proxyPort);
+	void setProxy(const char proxyIP[IP_MAX_LENGHT], unsigned int proxyPort);
 	void setRedirection(const bool enableRedirection);
 	void setBreakState(const unsigned int breakStartPos, const unsigned int breakEndPos);
-	int setTimeout(const unsigned int timeout);
+	unsigned int setTimeout(const unsigned int timeout);
 	void setContentType(const char contentType[CONTENT_TYPE_MAX_LENGHT]);
 
 	const unsigned int & getBearerProfileID() const;

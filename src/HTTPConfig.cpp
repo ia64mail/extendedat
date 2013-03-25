@@ -20,56 +20,94 @@ const char HTTPConfig::breakEndPosParamName[] = "BREAKEND";
 const char HTTPConfig::timeoutParamName[] = "TIMEOUT";
 const char HTTPConfig::contentTypeParamName[] = "CONTENT";
 
+/**
+ * Default constructor.
+ * The mandatory fields bearerProfileID and url
+ * should be initialized. Other fields will be
+ * initialized with default values.
+ */
 HTTPConfig::HTTPConfig(const unsigned int bearerProfileID, const char url[URL_MAX_LENGHT]) {
 	this->bearerProfileID = bearerProfileID;
 	strcpy(this->url, url);
 
-	setUserAgent("unknown");
-	setProxy("0.0.0.0", 0);
-	setRedirection(false);
+	setUserAgent(DEFAULT_USER_AGENT);
+	setProxy(DEFAULT_PROXY_IP, DEFAULT_PROXY_PORT);
+	setRedirection(DEFAULT_REDIRECTION);
 	setBreakState(0,0);
-	setTimeout(120);
-	setContentType("text/html");
+	setTimeout(DEFAULT_TIMEOUT);
+	setContentType(DEFAULT_CONTENT_TYPE);
 }
 
 HTTPConfig::~HTTPConfig() {
 }
 
+/**
+ * Set profile ID used for this HTTP session.
+ */
 void HTTPConfig::setBearerProfileID(const char id){
 	this->bearerProfileID = id;
 }
 
+/**
+ * Set URL used for this HTTP session.
+ */
 void HTTPConfig::setUrl(const char url[URL_MAX_LENGHT]) {
 	strcpy(this->url, url);
 }
 
+/**
+ * Set user agent identification used for this HTTP session.
+ */
 void HTTPConfig::setUserAgent(const char userAgent[USER_AGENT_MAX_LENGHT]) {
 	strcpy(this->userAgent, userAgent);
 }
 
-void HTTPConfig::setProxy(const char proxyIP[16], unsigned int proxyPort) {
+/**
+ * Set proxy IP if required for this HTTP session.
+ */
+void HTTPConfig::setProxy(const char proxyIP[IP_MAX_LENGHT], unsigned int proxyPort) {
 	strcpy(this->proxyIP, proxyIP);
 	this->proxyPort = proxyPort;
 }
 
+/**
+ * Set proxy port if required for this HTTP session.
+ */
 void HTTPConfig::setRedirection(const bool enableRedirection) {
 	this->enableRedirection = enableRedirection;
 }
 
+/**
+ * Set break state used for this HTTP session.
+ * This parameters used for HTTP method "GET" and allow
+ * resuming broken transfer.
+ * If the value of breakEndPos is bigger than breakStartPos,
+ * the transfer scope is from breakStartPos to breakEndPos.
+ * If the value of breakEndPos is smaller than breakStartPos,
+ * the transfer scope is from breakStartPos to the end of the file.
+ * If both breakStartPos and breakEndPos are 0, the
+ * resume broken transfer function is disabled.
+ *
+ * Not all the HTTP Server supports "BREAK" and "BREAKEND" parameters!
+ */
 void HTTPConfig::setBreakState(const unsigned int breakStartPos, const unsigned int breakEndPos) {
 	this->breakStartPos = breakStartPos;
 	this->breakEndPos = breakEndPos;
 }
 
-int HTTPConfig::setTimeout(const unsigned int timeout) {
-	if(timeout < 30 || timeout > 1000) {
-		return -1;
+/**
+ * Set HTTP session timeout in seconds. Scope: 30-1000s.
+ */
+unsigned int HTTPConfig::setTimeout(const unsigned int timeout) {
+	if(timeout >= 30 || timeout <= 1000) {
+		this->timeout = timeout;
 	}
-
-	this->timeout = timeout;
-	return timeout;
+	return this->timeout;
 }
 
+/**
+ * Set content type header value used for this HTTP session.
+ */
 void HTTPConfig::setContentType(const char contentType[CONTENT_TYPE_MAX_LENGHT]) {
 	strcpy(this->contentType, contentType);
 }
@@ -154,7 +192,7 @@ const bool HTTPConfig::isEnabledRedirection() const {
 }
 
 const bool HTTPConfig::isEnabledProxy() const {
-	if(strcmp("", getProxyIP()) == 0 && getProxyPort() == 0) {
+	if(strcmp(DEFAULT_PROXY_IP, getProxyIP()) == 0 && DEFAULT_PROXY_PORT == getProxyPort()) {
 		return false;
 	}
 	return true;
@@ -167,6 +205,12 @@ const bool HTTPConfig::isEnabledBreakState() const {
 	return true;
 }
 
+/**
+ * Compare this configuration with parameter specified one
+ * and result of comparison store into HTTPCONFIG_CHANGES structure.
+ *
+ * Return count of not equal properties.
+ */
 int HTTPConfig::compareWith(const HTTPConfig &config, HTTPCONFIG_CHANGES &changes) const {
 	int nChanges = 0;
 
