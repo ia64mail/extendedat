@@ -621,7 +621,7 @@ COMMON_AT_RESULT Sim900AT::startUSSDCall(const char * const ussdRequest, char * 
 	}
 
 	//TODO
-	sleep(10);
+	PortIO::sleepPort(10);
 
 	char * const responce = new char[responceSize];
 	resFlag &= (portIO->receiveFromPort(responce, responceSize) > 0);
@@ -1410,7 +1410,7 @@ COMMON_AT_RESULT Sim900AT::setCurrentHTTPAction(const HTTP_ACTION_METHOD &method
 		delete [] matches;
 
 		//TODO timeout or better sleep
-		sleep(2); /*small delay required!!!*/
+		PortIO::sleepPort(2); /*small delay required!!!*/
 	} while (!hasFirstResponce || !hasSecondResponce);
 
 	dceResult = DCE_OK;

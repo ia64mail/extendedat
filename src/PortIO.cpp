@@ -162,7 +162,7 @@ unsigned int PortIO::receiveRawFromPort(char * const buffer, const unsigned int 
  *  -1 if not enough size for incoming buffer or data integrity fail
  */
 int PortIO::receiveFromPort(char * const buffer, const unsigned int size) const {
-	int totalBytes; /*number of total bytes read*/
+	unsigned int totalBytes; /*number of total bytes read*/
 
 	//read raw data from port into specified buffer,
 	//reserve last char in buffer for terminated key code
@@ -267,4 +267,8 @@ int PortIO::sendToPort(const char * const buffer) const {
 		cout << "Actual size of sent data is " << totalBytes - size << " byte(s)"<< endl;
 	#endif
 	return -1;
+}
+
+void PortIO::sleepPort(unsigned int seconds) {
+	sleep(seconds);
 }

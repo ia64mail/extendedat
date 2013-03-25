@@ -40,6 +40,8 @@ public:
 	unsigned int receiveRawFromPort(char * const buffer, const unsigned int size) const;
 	int receiveFromPort(char * const buffer, const unsigned int size) const;
 	int sendToPort(const char * const buffer) const;
+
+	static void sleepPort(unsigned int seconds);
 };
 
 #endif /* PORTIO_H_ */

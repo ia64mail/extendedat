@@ -95,7 +95,7 @@ int main() {
 	}
 
 	//open connection
-	sleep(5); /*small delay required!!!*/
+	PortIO::sleepPort(5); /*small delay required!!!*/
 	r = atProcessor->openIPBearer(bearerId);
 	if(r != DCE_OK) {
 		//return -1;
