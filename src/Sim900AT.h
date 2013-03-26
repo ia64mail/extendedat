@@ -11,6 +11,7 @@
 #include "Util.h"
 #include "PortIO.h"
 #include "HTTPConfig.h"
+#include "BearerConfig.h"
 
 #ifndef SIM900AT_H_
 #define SIM900AT_H_
@@ -117,33 +118,6 @@ typedef struct {
 } PDP_CONTEXT_DETAILS;
 
 /**
- * Bearer parameter names.
- */
-#define BEARER_PARAM_CONTYPE_CSD "CSD" /*CSD connection type*/
-#define BEARER_PARAM_CONTYPE_GPRS "GPRS" /*GPRS connection type*/
-#define BEARER_PARAM_CSD_SPEED_2400 0 /*2400 b/s*/
-#define BEARER_PARAM_CSD_SPEED_4800 1 /*4800 b/s*/
-#define BEARER_PARAM_CSD_SPEED_9600 2 /*9600 b/s*/
-#define BEARER_PARAM_CSD_SPEED_14400 3 /*14400 b/s*/
-typedef enum {
-	BEARER_PARAM_CONTYPE, /*connection type, can be one of predefined BEARER_PARAM_CONTYPE_XXX*/
-	BEARER_PARAM_APN, /*logical name of GPRS Gateway Service Node*/
-	BEARER_PARAM_USER, /*user name*/
-	BEARER_PARAM_PWD, /*user password*/
-	BEARER_PARAM_PHONENUM, /*phone number for CSD call*/
-	BEARER_PARAM_RATE /*connection rate for CSD, can be one of predefined BEARER_PARAM_CSD_SPEED_XXXX*/
-} BEARER_PARAM_NAME;
-
-/**
- * Detailed information about bearer parameters
- */
-typedef struct {
-	int bearerProfileID; /*unique identifier for bearer profile*/
-	BEARER_PARAM_NAME paramName; /*logical name of GPRS Gateway Service Node*/
-	char paramValue[50]; /*IP address of DCE for this profile*/
-} BEARER_PARAMETER_DETAILS;
-
-/**
  * Bearer state.
  */
 typedef enum {
@@ -203,6 +177,7 @@ private:
 	void updateLastMobileEquipmentErrorStatus(const char * const responce);
 
 	COMMON_AT_RESULT changeStateIPBearer(const unsigned int &bearerProfileID, const unsigned int changeStateCode);
+	COMMON_AT_RESULT setIPBearerParameter(const char * atCommand);
 	COMMON_AT_RESULT configureHTTP(const char * atCommand);
 	COMMON_AT_RESULT setHTTPContext(const HTTPConfig &config, const HTTPCONFIG_CHANGES changes);
 public:
@@ -223,7 +198,7 @@ public:
 
 	COMMON_AT_RESULT definePaketDataProtocolContextProfile(const PDP_CONTEXT_DETAILS &details);
 
-	COMMON_AT_RESULT setIPBearerParameters(const BEARER_PARAMETER_DETAILS &details);
+	COMMON_AT_RESULT setIPBearerConfig(const BearerConfig &config);
 	COMMON_AT_RESULT openIPBearer(const unsigned int &bearerProfileID);
 	COMMON_AT_RESULT closeIPBearer(const unsigned int &bearerProfileID);
 	COMMON_AT_RESULT getIPBearerState(const unsigned int &bearerProfileID, BEARER_STATUS &status);

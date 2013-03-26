@@ -725,41 +725,14 @@ COMMON_AT_RESULT Sim900AT::definePaketDataProtocolContextProfile(const PDP_CONTE
 	return dceResult;
 }
 
-COMMON_AT_RESULT Sim900AT::setIPBearerParameters(const BEARER_PARAMETER_DETAILS &details) {
+COMMON_AT_RESULT Sim900AT::setIPBearerParameter(const char * atCommand) {
 	resetLastMobileEquipmentErrorStatus();
 	COMMON_AT_RESULT dceResult = DCE_FAIL;
-
-	char commandTemplate[] = "AT+SAPBR=3,%u,\"%s\",\"%s\"\r";
-	char * command = new char[sizeof(commandTemplate) + sizeof(details)];
-	const char responceSize = 20 + MEE_OFFSET;
 	bool resFlag = true;
 
-	const char * paramNameVal;
-	switch(details.paramName) {
-	case BEARER_PARAM_CONTYPE:
-		paramNameVal = "CONTYPE";
-		break;
-	case BEARER_PARAM_APN:
-		paramNameVal = "APN";
-		break;
-	case BEARER_PARAM_USER:
-		paramNameVal = "USER";
-		break;
-	case BEARER_PARAM_PWD:
-		paramNameVal = "PWD";
-		break;
-	case BEARER_PARAM_PHONENUM:
-		paramNameVal = "PHONENUM";
-		break;
-	case BEARER_PARAM_RATE:
-		paramNameVal = "RATE";
-		break;
-	}
+	const char responceSize = 7 + MEE_OFFSET;
 
-	sprintf(command, commandTemplate, details.bearerProfileID, paramNameVal, details.paramValue);
-	resFlag &= (portIO->sendToPort(command) > 0);
-
-	delete [] command;
+	resFlag &= (portIO->sendToPort(atCommand) > 0);
 
 	//send fail
 	if(!resFlag) {
@@ -775,9 +748,9 @@ COMMON_AT_RESULT Sim900AT::setIPBearerParameters(const BEARER_PARAMETER_DETAILS 
 		return dceResult;
 	}
 
-	char n_matches = 2;
+	char n_matches = 1;
 	regmatch_t * matches = new regmatch_t[n_matches];
-	resFlag &= (match_regex("^\r\n(\\w{2})\r\n$", responce, n_matches, matches) == 0);
+	resFlag &= (match_regex("^\r\nOK\r\n$", responce, n_matches, matches) == 0);
 
 	//answer decode fail
 	if(!resFlag) {
@@ -788,17 +761,109 @@ COMMON_AT_RESULT Sim900AT::setIPBearerParameters(const BEARER_PARAMETER_DETAILS 
 		return dceResult;
 	}
 
-	while(1) {
-		if(strncmp("OK", responce + matches[1].rm_so, matches[1].rm_eo - matches[1].rm_so) == 0) {
-			dceResult = DCE_OK;
-			break;
-		}
-
-		break;
-	}
+	dceResult = DCE_OK;
 
 	delete [] responce;
 	delete [] matches;
+	return dceResult;
+}
+
+COMMON_AT_RESULT Sim900AT::setIPBearerConfig(const BearerConfig &config) {
+	resetLastMobileEquipmentErrorStatus();
+	COMMON_AT_RESULT dceResult = DCE_OK;
+
+	char commandTemplate[] = "AT+SAPBR=3,%u,\"%s\",\"%s\"\r";
+
+	//set connection type
+	if(dceResult == DCE_OK) {
+		char * command = new char[sizeof(commandTemplate)
+		                          + sizeof(config.getConnectionTypeParamName())
+		                          + sizeof(config.getConnectionType())];
+
+		sprintf(command, commandTemplate, config.getBearerProfileID(),
+				config.getConnectionTypeParamName(), config.getConnectionType());
+
+		dceResult = setIPBearerParameter(command);
+
+		delete [] command;
+	}
+
+	//set APN name
+	if(dceResult == DCE_OK) {
+		char * command = new char[sizeof(commandTemplate)
+		                          + sizeof(config.getApnNameParamName())
+		                          + sizeof(config.getApnName())];
+
+		sprintf(command, commandTemplate, config.getBearerProfileID(),
+				config.getApnNameParamName(), config.getApnName());
+
+		dceResult = setIPBearerParameter(command);
+
+		delete [] command;
+	}
+
+	//setup authorization parameters
+	if(config.isUserNameAndPasswordDefined()) {
+		//set user name
+		if(dceResult == DCE_OK) {
+			char * command = new char[sizeof(commandTemplate)
+			                          + sizeof(config.getUserNameParamName())
+			                          + sizeof(config.getUserName())];
+
+			sprintf(command, commandTemplate, config.getBearerProfileID(),
+					config.getUserNameParamName(), config.getUserName());
+
+			dceResult = setIPBearerParameter(command);
+
+			delete [] command;
+		}
+
+		//set user password
+		if(dceResult == DCE_OK) {
+			char * command = new char[sizeof(commandTemplate)
+			                          + sizeof(config.getUserPasswordParamName())
+			                          + sizeof(config.getUserPassword())];
+
+			sprintf(command, commandTemplate, config.getBearerProfileID(),
+					config.getUserPasswordParamName(), config.getUserPassword());
+
+			dceResult = setIPBearerParameter(command);
+
+			delete [] command;
+		}
+	}
+
+	//setup CSD specific parameters
+	if(config.getConnectionType() == BEARER_PARAM_CONTYPE_CSD) {
+		//set phone number
+		if(dceResult == DCE_OK) {
+			char * command = new char[sizeof(commandTemplate)
+			                          + sizeof(config.getPhoneNumberParamName())
+			                          + sizeof(config.getPhoneNumber())];
+
+			sprintf(command, commandTemplate, config.getBearerProfileID(),
+					config.getPhoneNumberParamName(), config.getPhoneNumber());
+
+			dceResult = setIPBearerParameter(command);
+
+			delete [] command;
+		}
+
+		//set connection speed
+		if(dceResult == DCE_OK) {
+			char * command = new char[sizeof(commandTemplate)
+			                          + sizeof(config.getConnectionSpeedParamName())
+			                          + sizeof(config.getConnectionSpeedValue())];
+
+			sprintf(command, commandTemplate, config.getBearerProfileID(),
+					config.getConnectionSpeedParamName(), config.getConnectionSpeedValue());
+
+			dceResult = setIPBearerParameter(command);
+
+			delete [] command;
+		}
+	}
+
 	return dceResult;
 }
 

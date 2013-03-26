@@ -20,17 +20,24 @@ int main() {
 		cout << endl << "Communicating..." << endl;
 	#endif
 
-	PortIO * portIO = new PortIO();
-	Sim900AT * atProcessor = new Sim900AT(portIO);
+	COMMON_AT_RESULT r;
 
 	/**
 	 * Initialise modem
 	 */
-	COMMON_AT_RESULT r;
+	PortIO * portIO = new PortIO();
+	Sim900AT * atProcessor = new Sim900AT(portIO);
 	r= atProcessor->testAT();
+	if(r != DCE_OK) {
+		return -1;
+	}
+
 	SIMCARD_STATE s = atProcessor->checkSimCardLockState();
 	if(s == SIM_PIN_REQUIRED) {
 		r = atProcessor->unlockSimCard("0000");
+		if(r != DCE_OK) {
+			return -1;
+		}
 	}
 
 	/**
@@ -68,28 +75,10 @@ int main() {
 	/**
 	 * Create GPRS connection for HTTP AT commands
 	 */
-	BEARER_PARAMETER_DETAILS bearerDetails;
 	int bearerId = 1;
+	BearerConfig bearerConfig = BearerConfig(bearerId, "internet");
 
-	//setup connection type
-	bearerDetails.bearerProfileID = bearerId;
-	bearerDetails.paramName = BEARER_PARAM_CONTYPE;
-	char contype[50] = "GPRS";
-	strcpy(bearerDetails.paramValue, contype);
-
-	r = atProcessor->setIPBearerParameters(bearerDetails);
-	if(r != DCE_OK) {
-		return -1;
-	}
-
-	//setup connection AP name
-	bearerDetails.bearerProfileID = bearerId;
-	bearerDetails.paramName = BEARER_PARAM_APN;
-	char apname[50] = "internet";
-	strcpy(bearerDetails.paramValue, apname);
-
-
-	r = atProcessor->setIPBearerParameters(bearerDetails);
+	r = atProcessor->setIPBearerConfig(bearerConfig);
 	if(r != DCE_OK) {
 		return -1;
 	}
@@ -98,7 +87,7 @@ int main() {
 	PortIO::sleepPort(5); /*small delay required!!!*/
 	r = atProcessor->openIPBearer(bearerId);
 	if(r != DCE_OK) {
-		//return -1;
+		return -1;
 	}
 
 	//check connection state
