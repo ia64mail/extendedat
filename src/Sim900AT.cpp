@@ -778,10 +778,10 @@ COMMON_AT_RESULT Sim900AT::setIPBearerConfig(const BearerConfig &config) {
 	if(dceResult == DCE_OK) {
 		char * command = new char[sizeof(commandTemplate)
 		                          + sizeof(config.getConnectionTypeParamName())
-		                          + sizeof(config.getConnectionType())];
+		                          + sizeof(config.getConnectionTypeValue())];
 
 		sprintf(command, commandTemplate, config.getBearerProfileID(),
-				config.getConnectionTypeParamName(), config.getConnectionType());
+				config.getConnectionTypeParamName(), config.getConnectionTypeValue());
 
 		dceResult = setIPBearerParameter(command);
 

@@ -16,6 +16,9 @@ const char BearerConfig::userPasswordParamName[] = "PWD";
 const char BearerConfig::phoneNumberParamName[] = "PHONENUM";
 const char BearerConfig::connectionSpeedParamName[] = "RATE";
 
+const char BearerConfig::connectionTypeGPRSValue[] = "GPRS";
+const char BearerConfig::connectionTypeCSDValue[] = "CSD";
+
 /**
  * Create config for GPRS connection.
  * Profile ID and APN name are required.
@@ -73,7 +76,7 @@ void BearerConfig::configureCSD(const char apnName[APN_MAX_LENGHT], const char p
  * Return true if user or password was set for this config.
  */
 bool BearerConfig::isUserNameAndPasswordDefined() const {
-	if(strcmp(USER_UNDEFINED, getUserName()) && strcmp(PWD_UNDEFINED, getUserPassword())) {
+	if(strlen(getUserName()) == 0 && strlen(getUserPassword()) == 0) {
 		return false;
 	}
 	return true;
@@ -136,6 +139,20 @@ const BEARER_CONFIG_CONNECTION_TYPE & BearerConfig::getConnectionType() const{
 	return this->connectionType;
 }
 
+const char * const BearerConfig::getConnectionTypeValue() const {
+	switch(getConnectionType()) {
+	case BEARER_PARAM_CONTYPE_CSD:
+		return connectionTypeCSDValue;
+		break;
+	case BEARER_PARAM_CONTYPE_GPRS:
+	default:
+		return connectionTypeGPRSValue;
+		break;
+	}
+
+	return connectionTypeGPRSValue;
+}
+
 const char * const BearerConfig::getApnName() const{
 	return this->apnName;
 }
@@ -165,7 +182,7 @@ const char * const BearerConfig::getApnNameParamName() const{
 }
 
 const char * const BearerConfig::getUserNameParamName() const{
-	return BearerConfig::userPasswordParamName;
+	return BearerConfig::userNameParamName;
 }
 
 const char * const BearerConfig::getUserPasswordParamName() const{

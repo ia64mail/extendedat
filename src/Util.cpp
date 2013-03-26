@@ -48,10 +48,5 @@ void Util::writeEncoded(const char * const buffer, const unsigned int length) {
 		buffPtr++;
 		i++;
 	}
-
-	//write terminate '\0' key code to cout in case write length specified
-	if(length > 0) {
-		cout << CHAR_TR;
-	}
 }
 

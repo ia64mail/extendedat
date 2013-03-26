@@ -15,6 +15,7 @@
 #define USER_MAX_LENGHT 51 /*max length of user name parameter value (include terminate key code)*/
 #define PWD_MAX_LENGHT 51 /*max length of password parameter value (include terminate key code)*/
 #define PNUM_MAX_LENGHT 20 /*max length of phone number parameter value (include terminate key code)*/
+#define CONTYPEVAL_MAX_LENGHT 5 /*max length of string value representing connection type (include terminate key code)*/
 #define USER_UNDEFINED ""
 #define PWD_UNDEFINED ""
 
@@ -38,6 +39,9 @@ private:
 	static const char userPasswordParamName[4];
 	static const char phoneNumberParamName[9];
 	static const char connectionSpeedParamName[5];
+
+	static const char connectionTypeGPRSValue[5];
+	static const char connectionTypeCSDValue[4];
 
 	unsigned int bearerProfileID;
 	BEARER_CONFIG_CONNECTION_TYPE connectionType;
@@ -72,6 +76,7 @@ public:
 
 	const unsigned int & getBearerProfileID() const;
 	const BEARER_CONFIG_CONNECTION_TYPE & getConnectionType() const;
+	const char * const getConnectionTypeValue() const;
 	const char * const getApnName() const;
 	const char * const getUserName() const;
 	const char * const getUserPassword() const;
